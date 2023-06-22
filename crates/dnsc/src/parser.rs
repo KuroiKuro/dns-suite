@@ -11,7 +11,7 @@ const TEST_ARR: [u8; 4] = [
     MESSAGE HEADER PARSING
 */
 
-fn parser(input: (&[u8], usize), count: usize)-> IResult<(&[u8], usize), u8> {
+fn bit_parser(input: (&[u8], usize), count: usize)-> IResult<(&[u8], usize), u8> {
     take(count)(input)
 }
 
@@ -23,14 +23,14 @@ fn parse_id(inp: &[u8]) {
     // );
     
     // Take the first 2 bytes, and get a u16 from it
-    let first_result = parser((inp, 0usize), 8);
+    let first_result = bit_parser((inp, 0usize), 8);
     // let result = take::<&[u8], &[u8], usize, E>(2usize)((inp, 0usize));
     let ((modified_input, something), first_byte) = first_result.unwrap();
     println!("First byte:");
     println!("modified_input = {:?}", modified_input);
     println!("Something = {}", something);
     println!("output = 0b{:b}", first_byte);
-    let second_result = parser((modified_input, 0usize), 8);
+    let second_result = bit_parser((modified_input, 0usize), 8);
     let ((modified_input, read_bits), second_byte) = second_result.unwrap();
     println!("Second byte:");
     println!("modified_input = {:?}", modified_input);
