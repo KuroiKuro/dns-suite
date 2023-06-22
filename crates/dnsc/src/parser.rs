@@ -1,9 +1,8 @@
 use nom::{bits::complete::take, IResult};
 
-const TEST_INPUT: u32 = 0b1111_1111_0000_0000_1111_0000_1111_0000;
 const TEST_ARR: [u8; 4] = [
-    0b1111_1111,
-    0b0000_0000,
+    0b1111_1101,
+    0b0000_0010,
     0b1111_0000,
     0b1111_0000,
 ];
@@ -24,12 +23,19 @@ fn parse_id(inp: &[u8]) {
     // );
     
     // Take the first 2 bytes, and get a u16 from it
-    let result = parser((inp, 0usize), 8);
+    let first_result = parser((inp, 0usize), 8);
     // let result = take::<&[u8], &[u8], usize, E>(2usize)((inp, 0usize));
-    let ((modified_input, something), output) = result.unwrap();
+    let ((modified_input, something), first_byte) = first_result.unwrap();
+    println!("First byte:");
     println!("modified_input = {:?}", modified_input);
     println!("Something = {}", something);
-    println!("output = {:b}", output);
+    println!("output = 0b{:b}", first_byte);
+    let second_result = parser((modified_input, 0usize), 8);
+    let ((modified_input, read_bits), second_byte) = second_result.unwrap();
+    println!("Second byte:");
+    println!("modified_input = {:?}", modified_input);
+    println!("Something = {}", read_bits);
+    println!("output = 0b{:b}", second_byte);
 }
 
 pub fn test() {
