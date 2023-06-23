@@ -11,33 +11,30 @@ const TEST_ARR: [u8; 4] = [
     MESSAGE HEADER PARSING
 */
 
+
+/// Parse `count` bits from the input. The input should be a tuple containing the
+/// input byte slice, and the offset of the slice to parse from
 fn bit_parser(input: (&[u8], usize), count: usize)-> IResult<(&[u8], usize), u8> {
     take(count)(input)
 }
 
-// fn parse_id(inp: &[u8]) -> IResult<&[u8], u16> {
-fn parse_id(inp: &[u8]) {
-    // assert_eq!(
-    //     parser(([0b00010010].as_ref(), 0), 4),
-    //     Ok((([0b00010010].as_ref(), 4), 0b00000001))
-    // );
-    
+fn byte_parser(input: &[u8], count: usize) -> IResult<&[u8], &[u8]> {
+    nom::bytes::complete::take(count)(input)
+}
+
+
+/// Parse the query ID from the DNS message's header
+fn parse_id(inp: &[u8]) -> IResult<&[u8], u16> {
     // Take the first 2 bytes, and get a u16 from it
-    let first_result = bit_parser((inp, 0usize), 8);
-    // let result = take::<&[u8], &[u8], usize, E>(2usize)((inp, 0usize));
-    let ((modified_input, something), first_byte) = first_result.unwrap();
-    println!("First byte:");
-    println!("modified_input = {:?}", modified_input);
-    println!("Something = {}", something);
-    println!("output = 0b{:b}", first_byte);
-    let second_result = bit_parser((modified_input, 0usize), 8);
-    let ((modified_input, read_bits), second_byte) = second_result.unwrap();
-    println!("Second byte:");
-    println!("modified_input = {:?}", modified_input);
-    println!("Something = {}", read_bits);
-    println!("output = 0b{:b}", second_byte);
+    let take_bytes_result = byte_parser(inp, 2);
+    let (new_input, take_bytes) = take_bytes_result.unwrap();
+    let parsed_id_result = nom::number::complete::be_u16::<&[u8], nom::error::Error<&[u8]>>(take_bytes);
+    let (_, parsed_id) = parsed_id_result.unwrap();
+    Ok((new_input, parsed_id))
 }
 
 pub fn test() {
-    parse_id(&TEST_ARR);
+    let (new_input, parsed_id) = parse_id(&TEST_ARR).unwrap();
+    println!("parsed_id = {:b}", parsed_id);
+    dbg!(new_input);
 }
