@@ -1,3 +1,5 @@
+use idna::punycode;
+use itertools::{Itertools, Position};
 /// Represents a label within a domain name. According to RFC 1035 Section 3.1,
 /// "Domain names in messages are expressed in terms of a sequence of labels.
 /// Each label is represented as a one octet length field followed by that
@@ -20,8 +22,14 @@ impl From<&[u8]> for DomainLabel {
 }
 
 impl From<&str> for DomainLabel {
+    /// TODO: DNS actually uses ASCII, unless using the IDNA specification specified
+    /// in RFC 5890. Also change this to `impl TryFrom` to return `Result`
     fn from(value: &str) -> Self {
         let len = value.len();
+        let punycode_str = punycode::decode_to_string(value).unwrap();
+        if !Self::validate_label(&punycode_str) {
+            panic!("Invalid label!")
+        }
         let str_bytes = value.as_bytes();
         let byte_repr = match len {
             0 => vec![0],
@@ -32,6 +40,28 @@ impl From<&str> for DomainLabel {
 }
 
 impl DomainLabel {
+    fn validate_label(label: &str) -> bool {
+        let mut chars = label.clone().chars();
+        let label_len = label.len();
+        if label_len > 63 {
+            return false;
+        }
+        let validated_chars: Vec<char> = chars.with_position()
+            .map_while(|(pos, c)| {
+                if
+                    (pos == Position::First && !c.is_alphabetic()) ||
+                    (!c.is_alphanumeric() && c != '-') ||
+                    (pos == Position::Last && !c.is_alphanumeric()) {
+                    None
+                } else {
+                    Some(c)
+                }
+            })
+            .collect();
+
+        validated_chars.len() == label_len
+    }
+
     /// Creates a new empty `DomainLabel` instance. Mainly for use of terminating
     /// domain names, which are terminanted with a null label
     pub fn new_empty() -> Self {
@@ -53,6 +83,25 @@ impl DomainLabel {
 
     pub fn is_empty(&self) -> bool {
         self.len == 0
+    }
+}
+
+pub struct DomainName {
+    domain_labels: Vec<DomainLabel>,
+    domain_name: String,
+}
+
+impl TryFrom<&str> for DomainName {
+    // TODO: Create proper Error type!
+    type Error = ();
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        let split = value.split(".");
+        // if split.clone().count() == 0 {
+        //     return Self::Error;
+        // }
+        split.map(|domain_part| {
+
+        })
     }
 }
 
