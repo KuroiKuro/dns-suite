@@ -4,7 +4,7 @@ use super::{DomainLabel, DomainLabelValidationError};
 
 const DOMAIN_NAME_LENGTH_LIMIT: usize = 255;
 
-pub enum DomainNameError {
+pub enum DomainNameValidationError {
     LabelValidationError {
         domain_name: String,
         domain_label: String,
@@ -19,16 +19,16 @@ pub struct DomainName {
 }
 
 impl TryFrom<&str> for DomainName {
-    type Error = DomainNameError;
+    type Error = DomainNameValidationError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         let split = value.split('.');
-        let mut err: Option<DomainNameError> = None;
+        let mut err: Option<DomainNameValidationError> = None;
         let domain_labels = split
             .map_while(|domain_part| match DomainLabel::try_from(domain_part) {
                 Ok(label) => Some(label),
                 Err(e) => {
-                    err = Some(DomainNameError::LabelValidationError {
+                    err = Some(DomainNameValidationError::LabelValidationError {
                         domain_name: value.to_string(),
                         domain_label: domain_part.to_string(),
                         validation_error: e,
@@ -44,7 +44,7 @@ impl TryFrom<&str> for DomainName {
 
         let total_label_len: usize = domain_labels.iter().map(|label| label.len()).sum();
         if total_label_len > DOMAIN_NAME_LENGTH_LIMIT {
-            return Err(DomainNameError::NameTooLong(
+            return Err(DomainNameValidationError::NameTooLong(
                 value.to_string(),
                 total_label_len,
             ));
