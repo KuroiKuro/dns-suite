@@ -167,7 +167,8 @@ mod tests {
 
     #[test]
     fn test_length_limit() {
-        let too_long = "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz";
+        let too_long =
+            "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz";
         if DomainLabel::try_from(too_long).is_ok() {
             panic!("Domain label that was too long was allowed to pass");
         }

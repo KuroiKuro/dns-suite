@@ -22,7 +22,6 @@ impl TryFrom<&str> for DomainName {
     type Error = DomainNameError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-
         let split = value.split('.');
         let mut err: Option<DomainNameError> = None;
         let domain_labels = split
@@ -43,11 +42,12 @@ impl TryFrom<&str> for DomainName {
             return Err(e);
         }
 
-        let total_label_len: usize = domain_labels.iter()
-            .map(|label| label.len())
-            .sum();
+        let total_label_len: usize = domain_labels.iter().map(|label| label.len()).sum();
         if total_label_len > DOMAIN_NAME_LENGTH_LIMIT {
-            return Err(DomainNameError::NameTooLong(value.to_string(), total_label_len));
+            return Err(DomainNameError::NameTooLong(
+                value.to_string(),
+                total_label_len,
+            ));
         }
 
         Ok(Self {
@@ -60,7 +60,8 @@ impl TryFrom<&str> for DomainName {
 impl PartialEq for DomainName {
     fn eq(&self, other: &Self) -> bool {
         let other_labels = other.domain_labels.iter();
-        self.domain_labels.iter()
+        self.domain_labels
+            .iter()
             .zip(other_labels)
             .map(|(self_label, other_label)| self_label == other_label)
             .all_equal()
