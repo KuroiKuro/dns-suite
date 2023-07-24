@@ -101,22 +101,3 @@ impl DomainLabel {
         self.len == 0
     }
 }
-
-pub struct DomainName {
-    domain_labels: Vec<DomainLabel>,
-    domain_name: String,
-}
-
-impl TryFrom<&str> for DomainName {
-    // TODO: Create proper Error type!
-    type Error = ();
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let split = value.split(".");
-        // if split.clone().count() == 0 {
-        //     return Self::Error;
-        // }
-        split.map(|domain_part| {
-            
-        })
-    }
-}
