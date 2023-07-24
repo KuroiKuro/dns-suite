@@ -1,19 +1,27 @@
-use idna::punycode;
+// use idna::punycode;
+
+use std::str::FromStr;
+
+use ascii::{AsciiString, AsciiStr, AsciiChar};
 use itertools::{Itertools, Position};
 use thiserror::Error;
 
 const MAX_LABEL_LENGTH: usize = 63;
+// TODO: enable punycode in future
+// const ENABLE_PUNYCODE: bool = false;
 
 #[derive(Error, Debug)]
 pub enum DomainLabelValidationError {
     #[error("Domain label ({0}) was {1} chars long, exceeding max length of {}", MAX_LABEL_LENGTH)]
     LabelTooLong(String, usize),
     #[error("Invalid starting character '{1}' in domain label '{0}'")]
-    InvalidStartChar(String, char),
+    InvalidStartChar(String, AsciiChar),
     #[error("Invalid ending character '{1}' in domain label '{0}'")]
-    InvalidEndChar(String, char),
+    InvalidEndChar(String, AsciiChar),
     #[error("Invalid character '{1}' in domain label '{0}'")]
-    InvalidChar(String, char),
+    InvalidChar(String, AsciiChar),
+    #[error("Unable to parse ASCII characters from domain label '{0}'")]
+    InvalidAscii(String),
 }
 
 /// Represents a label within a domain name. According to RFC 1035 Section 3.1,
@@ -21,6 +29,9 @@ pub enum DomainLabelValidationError {
 /// Each label is represented as a one octet length field followed by that
 /// number of octets.  Since every domain name ends with the null label of
 /// the root, a domain name is terminated by a length byte of zero."
+/// 
+/// Note that in the current implementation, IDNA is not supported, and only
+/// pure ASCII characters for domain labels are supported
 pub struct DomainLabel {
     len: usize,
     byte_repr: Vec<u8>,
@@ -40,13 +51,14 @@ impl From<&[u8]> for DomainLabel {
 impl TryFrom<&str> for DomainLabel {
     type Error = DomainLabelValidationError;
     /// TODO: DNS actually uses ASCII, unless using the IDNA specification specified
-    /// in RFC 5890. Also change this to `impl TryFrom` to return `Result`
+    /// in RFC 5890.
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let len = value.len();
-        let punycode_str = punycode::decode_to_string(value).unwrap();
-        if let Err(e) = Self::validate_label(&punycode_str) {
-            return Err(e);
-        }
+        let ascii_value = match AsciiString::from_str(value) {
+            Ok(val) => val,
+            Err(_) => return Err(DomainLabelValidationError::InvalidAscii(value.to_string())),
+        };
+        let len = ascii_value.len();
+        Self::validate_label(&ascii_value)?;
         let str_bytes = value.as_bytes();
         let byte_repr = match len {
             0 => vec![0],
@@ -57,22 +69,22 @@ impl TryFrom<&str> for DomainLabel {
 }
 
 impl DomainLabel {
-    fn validate_label(label: &str) -> Result<(), DomainLabelValidationError> {
-        let mut chars = label.clone().chars();
+    fn validate_label(label: &AsciiStr) -> Result<(), DomainLabelValidationError> {
+        let chars = label.clone().chars();
         let label_len = label.len();
         if label_len > MAX_LABEL_LENGTH {
             return Err(DomainLabelValidationError::LabelTooLong(label.to_string(), label_len));
         }
 
-        for (pos, c) in chars.with_position() {
-            if pos == Position::First && !c.is_alphabetic() {
-                return Err(DomainLabelValidationError::InvalidStartChar(label.to_string(), c));
+        for (pos, ch) in chars.with_position() {
+            if pos == Position::First && !ch.is_alphabetic() {
+                return Err(DomainLabelValidationError::InvalidStartChar(label.to_string(), ch));
             }
-            else if pos == Position::Last && !c.is_alphanumeric() {
-                return Err(DomainLabelValidationError::InvalidEndChar(label.to_string(), c));
+            else if pos == Position::Last && !ch.is_alphanumeric() {
+                return Err(DomainLabelValidationError::InvalidEndChar(label.to_string(), ch));
             }
-            else if c != '-' || !c.is_alphanumeric() {
-                return Err(DomainLabelValidationError::InvalidChar(label.to_string(), c));
+            else if ch != AsciiChar::Minus && !ch.is_alphanumeric() {
+                return Err(DomainLabelValidationError::InvalidChar(label.to_string(), ch));
             }
         }
         Ok(())
@@ -99,5 +111,19 @@ impl DomainLabel {
 
     pub fn is_empty(&self) -> bool {
         self.len == 0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_label_instantiation() -> Result<(), DomainLabelValidationError> {
+        let valid_label1 = "com";
+        let valid_label2 = "google";
+        DomainLabel::try_from(valid_label1)?;
+        DomainLabel::try_from(valid_label2)?;
+        Ok(())
     }
 }
