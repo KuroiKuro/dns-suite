@@ -1,9 +1,9 @@
 // use idna::punycode;
 
-use std::str::FromStr;
 use std::cmp::PartialEq;
+use std::str::FromStr;
 
-use ascii::{AsciiString, AsciiStr, AsciiChar};
+use ascii::{AsciiChar, AsciiStr, AsciiString};
 use itertools::{Itertools, Position};
 use thiserror::Error;
 
@@ -13,7 +13,10 @@ const MAX_LABEL_LENGTH: usize = 63;
 
 #[derive(Error, Debug)]
 pub enum DomainLabelValidationError {
-    #[error("Domain label ({0}) was {1} chars long, exceeding max length of {}", MAX_LABEL_LENGTH)]
+    #[error(
+        "Domain label ({0}) was {1} chars long, exceeding max length of {}",
+        MAX_LABEL_LENGTH
+    )]
     LabelTooLong(String, usize),
     #[error("Invalid starting character '{1}' in domain label '{0}'")]
     InvalidStartChar(String, AsciiChar),
@@ -30,7 +33,7 @@ pub enum DomainLabelValidationError {
 /// Each label is represented as a one octet length field followed by that
 /// number of octets.  Since every domain name ends with the null label of
 /// the root, a domain name is terminated by a length byte of zero."
-/// 
+///
 /// Note that in the current implementation, IDNA is not supported, and only
 /// pure ASCII characters for domain labels are supported
 #[derive(Debug)]
@@ -54,9 +57,13 @@ impl TryFrom<&str> for DomainLabel {
         let str_bytes = value.as_bytes();
         let byte_repr = match len {
             0 => vec![0],
-            _ => [&[len as u8], str_bytes].concat()
+            _ => [&[len as u8], str_bytes].concat(),
         };
-        Ok(Self { len, byte_repr, label_str: ascii_value })
+        Ok(Self {
+            len,
+            byte_repr,
+            label_str: ascii_value,
+        })
     }
 }
 
@@ -74,18 +81,28 @@ impl DomainLabel {
         let chars = label.clone().chars();
         let label_len = label.len();
         if label_len > MAX_LABEL_LENGTH {
-            return Err(DomainLabelValidationError::LabelTooLong(label.to_string(), label_len));
+            return Err(DomainLabelValidationError::LabelTooLong(
+                label.to_string(),
+                label_len,
+            ));
         }
 
         for (pos, ch) in chars.with_position() {
             if pos == Position::First && !ch.is_alphabetic() {
-                return Err(DomainLabelValidationError::InvalidStartChar(label.to_string(), ch));
-            }
-            else if pos == Position::Last && !ch.is_alphanumeric() {
-                return Err(DomainLabelValidationError::InvalidEndChar(label.to_string(), ch));
-            }
-            else if ch != AsciiChar::Minus && !ch.is_alphanumeric() {
-                return Err(DomainLabelValidationError::InvalidChar(label.to_string(), ch));
+                return Err(DomainLabelValidationError::InvalidStartChar(
+                    label.to_string(),
+                    ch,
+                ));
+            } else if pos == Position::Last && !ch.is_alphanumeric() {
+                return Err(DomainLabelValidationError::InvalidEndChar(
+                    label.to_string(),
+                    ch,
+                ));
+            } else if ch != AsciiChar::Minus && !ch.is_alphanumeric() {
+                return Err(DomainLabelValidationError::InvalidChar(
+                    label.to_string(),
+                    ch,
+                ));
             }
         }
         Ok(())
@@ -94,7 +111,11 @@ impl DomainLabel {
     /// Creates a new empty `DomainLabel` instance. Mainly for use of terminating
     /// domain names, which are terminanted with a null label
     pub fn new_empty() -> Self {
-        Self { len: 0, byte_repr: vec![0], label_str: AsciiString::new() }
+        Self {
+            len: 0,
+            byte_repr: vec![0],
+            label_str: AsciiString::new(),
+        }
     }
 
     /// Returns a bytes slice representing the domain label. Following the spec, the
