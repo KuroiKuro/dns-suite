@@ -1,5 +1,21 @@
 use idna::punycode;
 use itertools::{Itertools, Position};
+use thiserror::Error;
+
+const MAX_LABEL_LENGTH: usize = 63;
+
+#[derive(Error, Debug)]
+pub enum DomainLabelValidationError {
+    #[error("Domain label ({0}) was {1} chars long, exceeding max length of {}", MAX_LABEL_LENGTH)]
+    LabelTooLong(String, usize),
+    #[error("Invalid starting character '{1}' in domain label '{0}'")]
+    InvalidStartChar(String, char),
+    #[error("Invalid ending character '{1}' in domain label '{0}'")]
+    InvalidEndChar(String, char),
+    #[error("Invalid character '{1}' in domain label '{0}'")]
+    InvalidChar(String, char),
+}
+
 /// Represents a label within a domain name. According to RFC 1035 Section 3.1,
 /// "Domain names in messages are expressed in terms of a sequence of labels.
 /// Each label is represented as a one octet length field followed by that
@@ -21,45 +37,45 @@ impl From<&[u8]> for DomainLabel {
     }
 }
 
-impl From<&str> for DomainLabel {
+impl TryFrom<&str> for DomainLabel {
+    type Error = DomainLabelValidationError;
     /// TODO: DNS actually uses ASCII, unless using the IDNA specification specified
     /// in RFC 5890. Also change this to `impl TryFrom` to return `Result`
-    fn from(value: &str) -> Self {
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
         let len = value.len();
         let punycode_str = punycode::decode_to_string(value).unwrap();
-        if !Self::validate_label(&punycode_str) {
-            panic!("Invalid label!")
+        if let Err(e) = Self::validate_label(&punycode_str) {
+            return Err(e);
         }
         let str_bytes = value.as_bytes();
         let byte_repr = match len {
             0 => vec![0],
             _ => [&[len as u8], str_bytes].concat()
         };
-        Self { len, byte_repr }
+        Ok(Self { len, byte_repr })
     }
 }
 
 impl DomainLabel {
-    fn validate_label(label: &str) -> bool {
+    fn validate_label(label: &str) -> Result<(), DomainLabelValidationError> {
         let mut chars = label.clone().chars();
         let label_len = label.len();
-        if label_len > 63 {
-            return false;
+        if label_len > MAX_LABEL_LENGTH {
+            return Err(DomainLabelValidationError::LabelTooLong(label.to_string(), label_len));
         }
-        let validated_chars: Vec<char> = chars.with_position()
-            .map_while(|(pos, c)| {
-                if
-                    (pos == Position::First && !c.is_alphabetic()) ||
-                    (!c.is_alphanumeric() && c != '-') ||
-                    (pos == Position::Last && !c.is_alphanumeric()) {
-                    None
-                } else {
-                    Some(c)
-                }
-            })
-            .collect();
 
-        validated_chars.len() == label_len
+        for (pos, c) in chars.with_position() {
+            if pos == Position::First && !c.is_alphabetic() {
+                return Err(DomainLabelValidationError::InvalidStartChar(label.to_string(), c));
+            }
+            else if pos == Position::Last && !c.is_alphanumeric() {
+                return Err(DomainLabelValidationError::InvalidEndChar(label.to_string(), c));
+            }
+            else if c != '-' || !c.is_alphanumeric() {
+                return Err(DomainLabelValidationError::InvalidChar(label.to_string(), c));
+            }
+        }
+        Ok(())
     }
 
     /// Creates a new empty `DomainLabel` instance. Mainly for use of terminating
