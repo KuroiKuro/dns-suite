@@ -45,3 +45,13 @@ impl TryFrom<&str> for DomainName {
         })
     }
 }
+
+impl PartialEq for DomainName {
+    fn eq(&self, other: &Self) -> bool {
+        let other_labels = other.domain_labels.iter();
+        self.domain_labels.iter()
+            .zip(other_labels)
+            .map(|(self_label, other_label)| self_label == other_label)
+            .all_equal()
+    }
+}
