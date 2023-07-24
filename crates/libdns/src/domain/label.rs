@@ -1,6 +1,7 @@
 // use idna::punycode;
 
 use std::str::FromStr;
+use std::cmp::PartialEq;
 
 use ascii::{AsciiString, AsciiStr, AsciiChar};
 use itertools::{Itertools, Position};
@@ -32,22 +33,12 @@ pub enum DomainLabelValidationError {
 /// 
 /// Note that in the current implementation, IDNA is not supported, and only
 /// pure ASCII characters for domain labels are supported
+#[derive(Debug)]
 pub struct DomainLabel {
     len: usize,
     byte_repr: Vec<u8>,
     label_str: AsciiString,
 }
-
-// impl From<&[u8]> for DomainLabel {
-//     fn from(value: &[u8]) -> Self {
-//         let len = value.len();
-//         let byte_repr = match len {
-//             0 => vec![0],
-//             _ => [&[len as u8], value].concat()
-//         };
-//         Self { len, byte_repr }
-//     }
-// }
 
 impl TryFrom<&str> for DomainLabel {
     type Error = DomainLabelValidationError;
@@ -66,6 +57,15 @@ impl TryFrom<&str> for DomainLabel {
             _ => [&[len as u8], str_bytes].concat()
         };
         Ok(Self { len, byte_repr, label_str: ascii_value })
+    }
+}
+
+impl PartialEq for DomainLabel {
+    fn eq(&self, other: &Self) -> bool {
+        // Labels are case insensitive for comparison purposes in the DNS spec
+        let self_label = self.label_str.to_ascii_lowercase();
+        let other_label = other.label_str.to_ascii_lowercase();
+        self_label == other_label
     }
 }
 
@@ -135,5 +135,12 @@ mod tests {
         let test_vec: Vec<u8> = vec![3, 99, 111, 109];
         let label = DomainLabel::try_from("com").unwrap();
         assert_eq!(test_vec, label.byte_repr);
+    }
+
+    #[test]
+    fn test_eq() {
+        let label1 = DomainLabel::try_from("com").unwrap();
+        let label2 = DomainLabel::try_from("CoM").unwrap();
+        assert_eq!(label1, label2);
     }
 }
