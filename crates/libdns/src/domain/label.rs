@@ -35,18 +35,19 @@ pub enum DomainLabelValidationError {
 pub struct DomainLabel {
     len: usize,
     byte_repr: Vec<u8>,
+    label_str: AsciiString,
 }
 
-impl From<&[u8]> for DomainLabel {
-    fn from(value: &[u8]) -> Self {
-        let len = value.len();
-        let byte_repr = match len {
-            0 => vec![0],
-            _ => [&[len as u8], value].concat()
-        };
-        Self { len, byte_repr }
-    }
-}
+// impl From<&[u8]> for DomainLabel {
+//     fn from(value: &[u8]) -> Self {
+//         let len = value.len();
+//         let byte_repr = match len {
+//             0 => vec![0],
+//             _ => [&[len as u8], value].concat()
+//         };
+//         Self { len, byte_repr }
+//     }
+// }
 
 impl TryFrom<&str> for DomainLabel {
     type Error = DomainLabelValidationError;
@@ -64,7 +65,7 @@ impl TryFrom<&str> for DomainLabel {
             0 => vec![0],
             _ => [&[len as u8], str_bytes].concat()
         };
-        Ok(Self { len, byte_repr })
+        Ok(Self { len, byte_repr, label_str: ascii_value })
     }
 }
 
@@ -93,7 +94,7 @@ impl DomainLabel {
     /// Creates a new empty `DomainLabel` instance. Mainly for use of terminating
     /// domain names, which are terminanted with a null label
     pub fn new_empty() -> Self {
-        Self { len: 0, byte_repr: vec![0] }
+        Self { len: 0, byte_repr: vec![0], label_str: AsciiString::new() }
     }
 
     /// Returns a bytes slice representing the domain label. Following the spec, the
@@ -125,5 +126,14 @@ mod tests {
         DomainLabel::try_from(valid_label1)?;
         DomainLabel::try_from(valid_label2)?;
         Ok(())
+    }
+
+    #[test]
+    fn test_byte_repr() {
+        // Test for label: "com". The label representation should be the len
+        // of the label + the bytes
+        let test_vec: Vec<u8> = vec![3, 99, 111, 109];
+        let label = DomainLabel::try_from("com").unwrap();
+        assert_eq!(test_vec, label.byte_repr);
     }
 }
