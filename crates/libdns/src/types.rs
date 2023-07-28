@@ -26,13 +26,13 @@ impl TryFrom<AsciiString> for CharacterString {
     type Error = CharacterStringError;
 
     fn try_from(value: AsciiString) -> Result<Self, Self::Error> {
-        let len = ascii_string.len();
+        let len = value.len();
         // Add 1 to include the value of the string's length
         if len + 1 > MAX_CHARACTER_STRING_LEN {
-            return Err(CharacterStringError::TooLong(ascii_string, MAX_CHARACTER_STRING_LEN));
+            return Err(CharacterStringError::TooLong(value, MAX_CHARACTER_STRING_LEN));
         }
-        let bytes_repr = Self::to_bytes(&ascii_string, len);
-        Ok(Self { len: ascii_string.len(), char_str: ascii_string, bytes_repr })
+        let bytes_repr = Self::to_bytes(&value, len);
+        Ok(Self { len: value.len(), char_str: value, bytes_repr })
     }
 }
 
@@ -71,15 +71,15 @@ mod tests {
     fn test_validation() {
         let too_long_str = (0..257).map(|_| 's')
             .collect::<String>();
-        assert!(CharacterString::new(AsciiString::from_str(&too_long_str).unwrap()).is_err());
+        assert!(CharacterString::try_from(AsciiString::from_str(&too_long_str).unwrap()).is_err());
     }
 
     #[test]
     fn test_bytes_repr() {
-        let char_str1 = CharacterString::new(AsciiString::from_str("Abcde").unwrap()).unwrap();
+        let char_str1 = CharacterString::try_from(AsciiString::from_str("Abcde").unwrap()).unwrap();
         let expected_bytes1: Vec<u8> = vec![5, 65, 98, 99, 100, 101];
         assert_eq!(char_str1.byte_slice(), &expected_bytes1);
-        let empty_char_str = CharacterString::new(AsciiString::new()).unwrap();
+        let empty_char_str = CharacterString::try_from(AsciiString::new()).unwrap();
         let expected_bytes2: Vec<u8> = vec![0];
         assert_eq!(empty_char_str.byte_slice(), &expected_bytes2);
     }

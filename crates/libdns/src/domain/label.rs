@@ -59,6 +59,16 @@ impl TryFrom<&str> for DomainLabel {
     }
 }
 
+impl TryFrom<AsciiString> for DomainLabel {
+    type Error = DomainLabelValidationError;
+
+    fn try_from(value: AsciiString) -> Result<Self, Self::Error> {
+        Self::validate_label(&value)?;
+        let data = CharacterString::try_from(value).unwrap();
+        Ok(Self { data })
+    }
+}
+
 impl PartialEq for DomainLabel {
     fn eq(&self, other: &Self) -> bool {
         // Labels are case insensitive for comparison purposes in the DNS spec
