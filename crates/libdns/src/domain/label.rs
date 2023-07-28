@@ -7,6 +7,8 @@ use ascii::{AsciiChar, AsciiStr, AsciiString};
 use itertools::{Itertools, Position};
 use thiserror::Error;
 
+use crate::types::CharacterString;
+
 const MAX_LABEL_LENGTH: usize = 63;
 // TODO: enable punycode in future
 // const ENABLE_PUNYCODE: bool = false;
@@ -38,9 +40,7 @@ pub enum DomainLabelValidationError {
 /// pure ASCII characters for domain labels are supported
 #[derive(Debug)]
 pub struct DomainLabel {
-    len: usize,
-    byte_repr: Vec<u8>,
-    label_str: AsciiString,
+    data: CharacterString,
 }
 
 impl TryFrom<&str> for DomainLabel {
@@ -52,26 +52,18 @@ impl TryFrom<&str> for DomainLabel {
             Ok(val) => val,
             Err(_) => return Err(DomainLabelValidationError::InvalidAscii(value.to_string())),
         };
-        let len = ascii_value.len();
         Self::validate_label(&ascii_value)?;
-        let str_bytes = value.as_bytes();
-        let byte_repr = match len {
-            0 => vec![0],
-            _ => [&[len as u8], str_bytes].concat(),
-        };
-        Ok(Self {
-            len,
-            byte_repr,
-            label_str: ascii_value,
-        })
+
+        let data = CharacterString::new(ascii_value).unwrap();
+        Ok(Self { data })
     }
 }
 
 impl PartialEq for DomainLabel {
     fn eq(&self, other: &Self) -> bool {
         // Labels are case insensitive for comparison purposes in the DNS spec
-        let self_label = self.label_str.to_ascii_lowercase();
-        let other_label = other.label_str.to_ascii_lowercase();
+        let self_label = self.data.char_str().to_ascii_lowercase();
+        let other_label = other.data.char_str().to_ascii_lowercase();
         self_label == other_label
     }
 }
@@ -111,28 +103,24 @@ impl DomainLabel {
     /// Creates a new empty `DomainLabel` instance. Mainly for use of terminating
     /// domain names, which are terminanted with a null label
     pub fn new_empty() -> Self {
-        Self {
-            len: 0,
-            byte_repr: vec![0],
-            label_str: AsciiString::new(),
-        }
+        Self { data: CharacterString::new(AsciiString::new()).unwrap() }
     }
 
     /// Returns a bytes slice representing the domain label. Following the spec, the
     /// first element of the slice will be the length of the label, followed by the
     /// bytes of the label itself
     pub fn as_bytes(&self) -> &[u8] {
-        &self.byte_repr
+        self.data.byte_slice()
     }
 
     /// Returns the length of the label, not the total length of the byte slice
     /// that will be returned by `as_bytes`
     pub fn len(&self) -> usize {
-        self.len
+        self.data.len()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.len == 0
+        self.data.len() == 0
     }
 }
 
@@ -155,7 +143,7 @@ mod tests {
         // of the label + the bytes
         let test_vec: Vec<u8> = vec![3, 99, 111, 109];
         let label = DomainLabel::try_from("com").unwrap();
-        assert_eq!(test_vec, label.byte_repr);
+        assert_eq!(test_vec, label.data.byte_slice());
     }
 
     #[test]
