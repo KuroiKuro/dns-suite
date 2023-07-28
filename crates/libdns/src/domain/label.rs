@@ -54,7 +54,7 @@ impl TryFrom<&str> for DomainLabel {
         };
         Self::validate_label(&ascii_value)?;
 
-        let data = CharacterString::new(ascii_value).unwrap();
+        let data = CharacterString::try_from(ascii_value).unwrap();
         Ok(Self { data })
     }
 }
@@ -103,7 +103,7 @@ impl DomainLabel {
     /// Creates a new empty `DomainLabel` instance. Mainly for use of terminating
     /// domain names, which are terminanted with a null label
     pub fn new_empty() -> Self {
-        Self { data: CharacterString::new(AsciiString::new()).unwrap() }
+        Self { data: CharacterString::try_from(AsciiString::new()).unwrap() }
     }
 
     /// Returns a bytes slice representing the domain label. Following the spec, the
@@ -143,6 +143,13 @@ mod tests {
         // of the label + the bytes
         let test_vec: Vec<u8> = vec![3, 99, 111, 109];
         let label = DomainLabel::try_from("com").unwrap();
+        assert_eq!(test_vec, label.data.byte_slice());
+    }
+
+    #[test]
+    fn test_empty_label_byte_repr() {
+        let test_vec: Vec<u8> = vec![0];
+        let label = DomainLabel::new_empty();
         assert_eq!(test_vec, label.data.byte_slice());
     }
 

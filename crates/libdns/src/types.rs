@@ -22,8 +22,10 @@ pub struct CharacterString {
     bytes_repr: Vec<u8>,
 }
 
-impl CharacterString {
-    pub fn new(ascii_string: AsciiString) -> Result<Self, CharacterStringError> {
+impl TryFrom<AsciiString> for CharacterString {
+    type Error = CharacterStringError;
+
+    fn try_from(value: AsciiString) -> Result<Self, Self::Error> {
         let len = ascii_string.len();
         // Add 1 to include the value of the string's length
         if len + 1 > MAX_CHARACTER_STRING_LEN {
@@ -32,7 +34,9 @@ impl CharacterString {
         let bytes_repr = Self::to_bytes(&ascii_string, len);
         Ok(Self { len: ascii_string.len(), char_str: ascii_string, bytes_repr })
     }
+}
 
+impl CharacterString {
     /// Encodes the data of the current `CharacterString` into a new `Vec<u8>`
     fn to_bytes(char_str: &AsciiString, len: usize) -> Vec<u8> {
         let mut bytes_repr: Vec<u8> = vec![len as u8];
