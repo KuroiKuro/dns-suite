@@ -1,4 +1,6 @@
-use crate::{domain::DomainName, types::CharacterString};
+pub mod rdata;
+
+use crate::domain::DomainName;
 
 /// An enum of the available resource record types defined in RFC 1035.
 /// TYPE fields are used in resource records.  Note that these types are a
@@ -72,40 +74,7 @@ pub enum ResourceRecordQClass {
     All = 255
 }
 
-/// A type representing the data of a `CNAME` resource type.
-/// A <domain-name> which specifies the canonical or primary name for the owner.
-/// The owner name is an alias.
-pub struct Cname {
-    cname: DomainName
-}
 
-
-pub struct Nsdname {
-    nsdname: DomainName
-}
-
-pub struct Ptr {
-    ptrdname: DomainName
-}
-
-pub struct Soa {
-    /// The <domain-name> of the name server that was the original or primary source of data for this zone.
-    mname: DomainName,
-    /// A <domain-name> which specifies the mailbox of the person responsible for this zone.
-    rname: DomainName,
-    /// The unsigned 32 bit version number of the original copy of the zone. Zone transfers preserve this value.
-    /// This value wraps and should be compared using sequence space arithmetic.
-    serial: u32,
-    /// A 32 bit time interval before the zone should be refreshed.
-    refresh: u32,
-    /// A 32 bit time interval that should elapse before a failed refresh should be retried.
-    retry: u32,
-    /// A 32 bit time value that specifies the upper limit on the time interval that can elapse before the zone is no
-    /// longer authoritative
-    expire: u32,
-    /// The unsigned 32 bit minimum TTL field that should be exported with any RR from this zone.
-    minimum: u32,
-}
 
 /// All RRs have the same top level format shown below:
 ///                               1  1  1  1  1  1
