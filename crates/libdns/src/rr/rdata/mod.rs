@@ -1,6 +1,14 @@
+use std::num::Wrapping;
+
+use itertools::Itertools;
+
 use crate::{domain::DomainName, types::CharacterString};
 
 pub mod internet;
+
+pub trait Rdata {
+    fn to_bytes(&self) -> Vec<u8>;
+}
 
 /// A type representing the data of a `CNAME` resource type.
 /// A <domain-name> which specifies the canonical or primary name for the owner.
@@ -9,13 +17,31 @@ pub struct CnameRdata {
     cname: DomainName
 }
 
+impl Rdata for CnameRdata {
+    fn to_bytes(&self) -> Vec<u8> {
+        self.cname.to_bytes()
+    }
+}
+
 
 pub struct NsdnameRdata {
     nsdname: DomainName
 }
 
+impl Rdata for NsdnameRdata {
+    fn to_bytes(&self) -> Vec<u8> {
+        self.nsdname.to_bytes()
+    }
+}
+
 pub struct PtrRdata {
     ptrdname: DomainName
+}
+
+impl Rdata for PtrRdata {
+    fn to_bytes(&self) -> Vec<u8> {
+        self.ptrdname.to_bytes()
+    }
 }
 
 /// SOA records cause no additional section processing. All times are in units of seconds.
@@ -33,7 +59,7 @@ pub struct SoaRdata {
     rname: DomainName,
     /// The unsigned 32 bit version number of the original copy of the zone. Zone transfers preserve this value.
     /// This value wraps and should be compared using sequence space arithmetic.
-    serial: u32,
+    serial: Wrapping<u32>,
     /// A 32 bit time interval before the zone should be refreshed.
     refresh: u32,
     /// A 32 bit time interval that should elapse before a failed refresh should be retried.
@@ -45,9 +71,32 @@ pub struct SoaRdata {
     minimum: u32,
 }
 
+impl Rdata for SoaRdata {
+    fn to_bytes(&self) -> Vec<u8> {
+        [&self.mname, &self.rname].iter()
+            .flat_map(|domain_name| domain_name.to_bytes())
+            .chain(
+                [self.serial.0, self.refresh, self.retry, self.expire, self.minimum]
+                    .map(|val| Vec::from(val.to_be_bytes()))
+                    .into_iter()
+                    .flatten()
+            )
+            .collect_vec()
+    }
+}
+
 
 /// TXT RRs are used to hold descriptive text. The semantics of the text depends on the domain where it is found.
 pub struct TxtRdata {
     /// One or more <character-string>s.
     txt_data: Vec<CharacterString>
+}
+
+impl Rdata for TxtRdata {
+    fn to_bytes(&self) -> Vec<u8> {
+        self.txt_data
+            .iter()
+            .flat_map(|cs| Vec::from(cs.byte_slice()))
+            .collect_vec()
+    }
 }

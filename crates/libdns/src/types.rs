@@ -31,14 +31,14 @@ impl TryFrom<AsciiString> for CharacterString {
         if len + 1 > MAX_CHARACTER_STRING_LEN {
             return Err(CharacterStringError::TooLong(value, MAX_CHARACTER_STRING_LEN));
         }
-        let bytes_repr = Self::to_bytes(&value, len);
+        let bytes_repr = Self::ascii_to_bytes(&value, len);
         Ok(Self { len: value.len(), char_str: value, bytes_repr })
     }
 }
 
 impl CharacterString {
     /// Encodes the data of the current `CharacterString` into a new `Vec<u8>`
-    fn to_bytes(char_str: &AsciiString, len: usize) -> Vec<u8> {
+    fn ascii_to_bytes(char_str: &AsciiString, len: usize) -> Vec<u8> {
         let mut bytes_repr: Vec<u8> = vec![len as u8];
         bytes_repr.extend(char_str.as_bytes());
         bytes_repr
