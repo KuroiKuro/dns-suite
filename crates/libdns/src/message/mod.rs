@@ -57,8 +57,6 @@ pub enum ResponseCode {
     Reserved = 6,
 }
 
-
-
 // pub struct DnsMessage {
 //     header: Header,
 //     message_type: MessageType,

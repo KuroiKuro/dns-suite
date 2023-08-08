@@ -29,10 +29,17 @@ impl TryFrom<AsciiString> for CharacterString {
         let len = value.len();
         // Add 1 to include the value of the string's length
         if len + 1 > MAX_CHARACTER_STRING_LEN {
-            return Err(CharacterStringError::TooLong(value, MAX_CHARACTER_STRING_LEN));
+            return Err(CharacterStringError::TooLong(
+                value,
+                MAX_CHARACTER_STRING_LEN,
+            ));
         }
         let bytes_repr = Self::ascii_to_bytes(&value, len);
-        Ok(Self { len: value.len(), char_str: value, bytes_repr })
+        Ok(Self {
+            len: value.len(),
+            char_str: value,
+            bytes_repr,
+        })
     }
 }
 
@@ -66,11 +73,10 @@ mod tests {
     use std::str::FromStr;
 
     use super::*;
-    
+
     #[test]
     fn test_validation() {
-        let too_long_str = (0..257).map(|_| 's')
-            .collect::<String>();
+        let too_long_str = (0..257).map(|_| 's').collect::<String>();
         assert!(CharacterString::try_from(AsciiString::from_str(&too_long_str).unwrap()).is_err());
     }
 

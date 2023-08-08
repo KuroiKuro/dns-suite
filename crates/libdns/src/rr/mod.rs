@@ -52,7 +52,7 @@ pub enum Qtype {
     /// A request for mail agent RRs (Obsolete - see MX)
     Maila = 254,
     /// Represented in the spec as `*`. A request for all records
-    All = 255
+    All = 255,
 }
 
 /// CLASS fields appear in resource records
@@ -64,17 +64,15 @@ pub enum ResourceRecordClass {
     /// The CHAOS class
     Ch = 3,
     /// Hesiod [Dyer 87]
-    Hs = 4
+    Hs = 4,
 }
 
 /// QCLASS fields appear in the question section of a query. QCLASS values
 /// are a superset of CLASS values; every CLASS is a valid QCLASS.
 pub enum ResourceRecordQClass {
     /// Any class
-    All = 255
+    All = 255,
 }
-
-
 
 /// All RRs have the same top level format shown below:
 ///                               1  1  1  1  1  1

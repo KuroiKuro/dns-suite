@@ -113,7 +113,9 @@ impl DomainLabel {
     /// Creates a new empty `DomainLabel` instance. Mainly for use of terminating
     /// domain names, which are terminanted with a null label
     pub fn new_empty() -> Self {
-        Self { data: CharacterString::try_from(AsciiString::new()).unwrap() }
+        Self {
+            data: CharacterString::try_from(AsciiString::new()).unwrap(),
+        }
     }
 
     /// Returns a bytes slice representing the domain label. Following the spec, the

@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use ascii::{AsciiString, AsciiChar};
+use ascii::{AsciiChar, AsciiString};
 use itertools::Itertools;
 use thiserror::Error;
 
@@ -83,8 +83,7 @@ impl PartialEq for DomainName {
 
 impl DomainName {
     pub fn to_bytes(&self) -> Vec<u8> {
-        self
-            .domain_labels
+        self.domain_labels
             .iter()
             .chain(&[DomainLabel::new_empty()])
             .flat_map(|label| Vec::from(label.as_bytes()))
@@ -104,7 +103,10 @@ mod tests {
             vec![4, 108, 105, 118, 101],
             vec![3, 99, 111, 109],
             vec![0],
-        ].into_iter().flatten().collect();
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
 
         let domain_bytes = domain_name.to_bytes();
         assert_eq!(expected_tags, domain_bytes);

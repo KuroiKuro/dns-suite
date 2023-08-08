@@ -14,7 +14,7 @@ pub trait Rdata {
 /// A <domain-name> which specifies the canonical or primary name for the owner.
 /// The owner name is an alias.
 pub struct CnameRdata {
-    cname: DomainName
+    cname: DomainName,
 }
 
 impl Rdata for CnameRdata {
@@ -23,9 +23,8 @@ impl Rdata for CnameRdata {
     }
 }
 
-
 pub struct NsdnameRdata {
-    nsdname: DomainName
+    nsdname: DomainName,
 }
 
 impl Rdata for NsdnameRdata {
@@ -35,7 +34,7 @@ impl Rdata for NsdnameRdata {
 }
 
 pub struct PtrRdata {
-    ptrdname: DomainName
+    ptrdname: DomainName,
 }
 
 impl Rdata for PtrRdata {
@@ -73,23 +72,29 @@ pub struct SoaRdata {
 
 impl Rdata for SoaRdata {
     fn to_bytes(&self) -> Vec<u8> {
-        [&self.mname, &self.rname].iter()
+        [&self.mname, &self.rname]
+            .iter()
             .flat_map(|domain_name| domain_name.to_bytes())
             .chain(
-                [self.serial.0, self.refresh, self.retry, self.expire, self.minimum]
-                    .map(|val| Vec::from(val.to_be_bytes()))
-                    .into_iter()
-                    .flatten()
+                [
+                    self.serial.0,
+                    self.refresh,
+                    self.retry,
+                    self.expire,
+                    self.minimum,
+                ]
+                .map(|val| Vec::from(val.to_be_bytes()))
+                .into_iter()
+                .flatten(),
             )
             .collect_vec()
     }
 }
 
-
 /// TXT RRs are used to hold descriptive text. The semantics of the text depends on the domain where it is found.
 pub struct TxtRdata {
     /// One or more <character-string>s.
-    txt_data: Vec<CharacterString>
+    txt_data: Vec<CharacterString>,
 }
 
 impl Rdata for TxtRdata {
