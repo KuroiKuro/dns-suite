@@ -55,6 +55,18 @@ struct Header {
     arcount: u16,
 }
 
+impl Header {
+    pub fn builder(qr: MessageType) -> HeaderBuilder {
+        HeaderBuilder::new(qr)
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let id_sec = self.id.to_be_bytes();
+        let qr = (self.qr as u16) << 16;
+        let 
+    }
+}
+
 /// A builder type to construct `Header` instances. The only field that is required upfront is the
 /// `qr` field. Every other field is optional - see the respective documentation on the field to
 /// understand what are the default values that will be used. See the documentation on `Header` to
