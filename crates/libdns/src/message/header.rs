@@ -1,4 +1,5 @@
 use super::{MessageType, QueryOpcode, ResponseCode};
+use rand::random;
 
 /// A DNS message header. The header contains the following fields:
 ///                               1  1  1  1  1  1
@@ -65,23 +66,133 @@ struct HeaderBuilder {
     /// The query type that will be set in the header
     qr: MessageType,
     /// Defaults to using `QueryOpcode::Query`
-    opcode: Option<QueryOpcode>,
+    opcode: QueryOpcode,
     /// Defaults to `false`
-    authoritative_ans: Option<bool>,
+    authoritative_ans: bool,
     /// Defaults to `false`
-    truncation: Option<bool>,
+    truncation: bool,
     /// Defaults to `false`
-    recursion_desired: Option<bool>,
+    recursion_desired: bool,
     /// Defaults to `false`
-    recursion_available: Option<bool>,
+    recursion_available: bool,
     /// Defaults to `ResponseCode::NoError`
-    response_code: Option<ResponseCode>,
+    response_code: ResponseCode,
     /// Defaults to `0`
-    qdcount: Option<u16>,
+    qdcount: u16,
     /// Defaults to `0`
-    ancount: Option<u16>,
+    ancount: u16,
     /// Defaults to `0`
-    nscount: Option<u16>,
+    nscount: u16,
     /// Defaults to `0`
-    arcount: Option<u16>,
+    arcount: u16,
+}
+
+impl HeaderBuilder {
+    const DEFAULT_OPCODE: QueryOpcode = QueryOpcode::Query;
+    const DEFAULT_AUTHORITATIVE_ANS: bool = false;
+    const DEFAULT_TRUNCATION: bool = false;
+    const DEFAULT_RECURSION_DESIRED: bool = false;
+    const DEFAULT_RECURSION_AVAILABLE: bool = false;
+    const DEFAULT_RESPONSE_CODE: ResponseCode = ResponseCode::NoError;
+    const DEFAULT_QDCOUNT: u16 = 0;
+    const DEFAULT_ANCOUNT: u16 = 0;
+    const DEFAULT_NSCOUNT: u16 = 0;
+    const DEFAULT_ARCOUNT: u16 = 0;
+
+    fn generate_id() -> u16 {
+        random::<u16>()
+    }
+
+    pub fn new(qr: MessageType) -> Self {
+        Self {
+            id: None,
+            qr,
+            opcode: Self::DEFAULT_OPCODE,
+            authoritative_ans: Self::DEFAULT_AUTHORITATIVE_ANS,
+            truncation: Self::DEFAULT_TRUNCATION,
+            recursion_desired: Self::DEFAULT_RECURSION_DESIRED,
+            recursion_available: Self::DEFAULT_RECURSION_AVAILABLE,
+            response_code: Self::DEFAULT_RESPONSE_CODE,
+            qdcount: Self::DEFAULT_QDCOUNT,
+            ancount: Self::DEFAULT_ANCOUNT,
+            nscount: Self::DEFAULT_NSCOUNT,
+            arcount: Self::DEFAULT_ARCOUNT,
+        }
+    }
+
+    pub fn finalize(self) -> Header {
+        let id = match self.id {
+            Some(id) => id,
+            None => Self::generate_id(),
+        };
+        Header {
+            id,
+            qr: self.qr,
+            opcode: self.opcode,
+            authoritative_ans: self.authoritative_ans,
+            truncation: self.truncation,
+            recursion_desired: self.recursion_desired,
+            recursion_available: self.recursion_available,
+            response_code: self.response_code,
+            qdcount: self.qdcount,
+            ancount: self.ancount,
+            nscount: self.nscount,
+            arcount: self.arcount,
+        }
+    }
+
+    pub fn set_id(mut self, id: u16) -> Self {
+        self.id = Some(id);
+        self
+    }
+
+    pub fn set_opcode(mut self, opcode: QueryOpcode) -> Self {
+        self.opcode = opcode;
+        self
+    }
+
+    pub fn set_authoritative_ans(mut self, authoritative_ans: bool) -> Self {
+        self.authoritative_ans = authoritative_ans;
+        self
+    }
+
+    pub fn set_truncation(mut self, truncation: bool) -> Self {
+        self.truncation = truncation;
+        self
+    }
+
+    pub fn set_recursion_desired(mut self, recursion_desired: bool) -> Self {
+        self.recursion_desired = recursion_desired;
+        self
+    }
+
+    pub fn set_recursion_available(mut self, recursion_available: bool) -> Self {
+        self.recursion_available = recursion_available;
+        self
+    }
+
+    pub fn set_response_code(mut self, response_code: ResponseCode) -> Self {
+        self.response_code = response_code;
+        self
+    }
+
+    pub fn set_qdcount(mut self, qdcount: u16) -> Self {
+        self.qdcount = qdcount;
+        self
+    }
+
+    pub fn set_ancount(mut self, ancount: u16) -> Self {
+        self.ancount = ancount;
+        self
+    }
+
+    pub fn set_nscount(mut self, nscount: u16) -> Self {
+        self.nscount = nscount;
+        self
+    }
+
+    pub fn set_arcount(mut self, arcount: u16) -> Self {
+        self.arcount = arcount;
+        self
+    }
 }
