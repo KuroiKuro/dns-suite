@@ -1,4 +1,5 @@
 use super::{MessageType, QueryOpcode, ResponseCode};
+use itertools::Itertools;
 use rand::random;
 
 /// A DNS message header. The header contains the following fields:
@@ -61,9 +62,22 @@ impl Header {
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {
-        let id_sec = self.id.to_be_bytes();
-        let qr = (self.qr as u16) << 16;
-        let 
+        [self.id, self.second_section(), self.qdcount, self.ancount, self.nscount, self.arcount]
+            .iter()
+            .flat_map(|val| val.to_be_bytes())
+            .collect_vec()
+    }
+
+    fn second_section(&self) -> u16 {
+        let qr = (self.qr as u16) << 15;
+        let opcode = (self.opcode as u16) << 11;
+        let aa = (self.authoritative_ans as u16) << 10;
+        let tc = (self.truncation as u16) << 9;
+        let rd = (self.recursion_desired as u16) << 8;
+        let ra = (self.recursion_available as u16) << 7;
+        let z = 0;
+        let rcode = self.response_code as u16;
+        qr | opcode | aa | tc | rd | ra | z | rcode
     }
 }
 
@@ -206,5 +220,31 @@ impl HeaderBuilder {
     pub fn set_arcount(mut self, arcount: u16) -> Self {
         self.arcount = arcount;
         self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[allow(clippy::unusual_byte_groupings)]
+    fn test_question_header() {
+        let expected_header: [u8; 12] = [
+            0x02, 0x0F,
+            // QR, OPCODE, AA, TC, RD, RA, Z, RCODE
+            0b0_0000_0_0_1, 0b0_000_0000,
+            0, 2,
+            0, 0,
+            0, 0,
+            0, 0,
+        ];
+        let header = Header::builder(MessageType::Question)
+            .set_id(0x020F)
+            .set_recursion_desired(true)
+            .set_qdcount(2)
+            .finalize();
+        let header_bytes = header.to_bytes();
+        assert_eq!(Vec::from(expected_header), header_bytes);
     }
 }
