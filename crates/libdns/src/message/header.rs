@@ -57,6 +57,7 @@ struct Header {
 }
 
 impl Header {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: u16,
         qr: MessageType,
