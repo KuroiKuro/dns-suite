@@ -57,15 +57,52 @@ struct Header {
 }
 
 impl Header {
+    pub fn new(
+        id: u16,
+        qr: MessageType,
+        opcode: QueryOpcode,
+        authoritative_ans: bool,
+        truncation: bool,
+        recursion_desired: bool,
+        recursion_available: bool,
+        response_code: ResponseCode,
+        qdcount: u16,
+        ancount: u16,
+        nscount: u16,
+        arcount: u16,
+    ) -> Self {
+        Self {
+            id,
+            qr,
+            opcode,
+            authoritative_ans,
+            truncation,
+            recursion_desired,
+            recursion_available,
+            response_code,
+            qdcount,
+            ancount,
+            nscount,
+            arcount,
+        }
+    }
+
     pub fn builder(qr: MessageType) -> HeaderBuilder {
         HeaderBuilder::new(qr)
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {
-        [self.id, self.second_section(), self.qdcount, self.ancount, self.nscount, self.arcount]
-            .iter()
-            .flat_map(|val| val.to_be_bytes())
-            .collect_vec()
+        [
+            self.id,
+            self.second_section(),
+            self.qdcount,
+            self.ancount,
+            self.nscount,
+            self.arcount,
+        ]
+        .iter()
+        .flat_map(|val| val.to_be_bytes())
+        .collect_vec()
     }
 
     fn second_section(&self) -> u16 {
@@ -231,18 +268,65 @@ mod tests {
     #[allow(clippy::unusual_byte_groupings)]
     fn test_question_header() {
         let expected_header: [u8; 12] = [
-            0x02, 0x0F,
-            // QR, OPCODE, AA, TC, RD, RA, Z, RCODE
-            0b0_0000_0_0_1, 0b0_000_0000,
-            0, 2,
-            0, 0,
-            0, 0,
-            0, 0,
+            0x02,
+            0x0F,
+            // QR, OPCODE, AA, TC, RD
+            0b0_0000_0_0_1,
+            // RA, Z, RCODE
+            0b0_000_0000,
+            // QDCOUNT
+            0,
+            2,
+            // ANCOUNT
+            0,
+            0,
+            // NSCOUNT
+            0,
+            0,
+            // ARCOUNT
+            0,
+            0,
         ];
         let header = Header::builder(MessageType::Question)
             .set_id(0x020F)
             .set_recursion_desired(true)
             .set_qdcount(2)
+            .finalize();
+        let header_bytes = header.to_bytes();
+        assert_eq!(Vec::from(expected_header), header_bytes);
+    }
+
+    #[test]
+    #[allow(clippy::unusual_byte_groupings)]
+    fn test_answer_header() {
+        let expected_header: [u8; 12] = [
+            // ID
+            0x13,
+            0xE2,
+            // QR, OPCODE, AA, TC, RD
+            0b1_0000_1_0_1,
+            // RA, Z, RCODE
+            0b1_000_0000,
+            // QDCOUNT
+            0,
+            1,
+            // ANCOUNT
+            0,
+            1,
+            // NSCOUNT
+            0,
+            0,
+            // ARCOUNT
+            0,
+            0,
+        ];
+        let header = Header::builder(MessageType::Answer)
+            .set_id(0x13E2)
+            .set_authoritative_ans(true)
+            .set_recursion_desired(true)
+            .set_recursion_available(true)
+            .set_qdcount(1)
+            .set_ancount(1)
             .finalize();
         let header_bytes = header.to_bytes();
         assert_eq!(Vec::from(expected_header), header_bytes);
