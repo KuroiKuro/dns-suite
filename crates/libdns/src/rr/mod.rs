@@ -6,6 +6,7 @@ use crate::domain::DomainName;
 /// TYPE fields are used in resource records.  Note that these types are a
 /// subset of QTYPEs.
 
+#[derive(Debug, Clone, Copy)]
 pub enum ResourceRecordType {
     /// A host address
     A = 1,
@@ -44,6 +45,7 @@ pub enum ResourceRecordType {
 /// An enum of the available query types defined in RFC 1035.
 /// QTYPE fields appear in the question part of a query. QTYPES are a
 /// superset of TYPEs, hence all TYPEs are valid QTYPEs.
+#[derive(Debug, Clone, Copy)]
 pub enum Qtype {
     /// A request for a transfer of an entire zone
     Axfr = 252,
@@ -56,6 +58,7 @@ pub enum Qtype {
 }
 
 /// CLASS fields appear in resource records
+#[derive(Debug, Clone, Copy)]
 pub enum ResourceRecordClass {
     /// The internet
     In = 1,
@@ -69,6 +72,7 @@ pub enum ResourceRecordClass {
 
 /// QCLASS fields appear in the question section of a query. QCLASS values
 /// are a superset of CLASS values; every CLASS is a valid QCLASS.
+#[derive(Debug, Clone, Copy)]
 pub enum ResourceRecordQClass {
     /// Any class
     All = 255,
