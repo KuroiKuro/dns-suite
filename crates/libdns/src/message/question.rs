@@ -2,7 +2,7 @@ use itertools::Itertools;
 
 use crate::{
     domain::DomainLabel,
-    rr::{ResourceRecordClass, ResourceRecordType},
+    rr::{Qtype, ResourceRecordQClass},
 };
 
 /// A struct depicting a question in a DNS message. The question section in the messsage
@@ -11,12 +11,12 @@ use crate::{
 /// packed into bytes
 pub struct Question {
     qname: DomainLabel,
-    qtype: ResourceRecordType,
-    qclass: ResourceRecordClass,
+    qtype: Qtype,
+    qclass: ResourceRecordQClass,
 }
 
 impl Question {
-    pub fn new(qname: DomainLabel, qtype: ResourceRecordType, qclass: ResourceRecordClass) -> Self {
+    pub fn new(qname: DomainLabel, qtype: Qtype, qclass: ResourceRecordQClass) -> Self {
         Self {
             qname,
             qtype,
