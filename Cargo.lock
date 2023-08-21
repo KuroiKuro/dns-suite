@@ -70,6 +70,7 @@ dependencies = [
  "ascii",
  "idna",
  "itertools",
+ "nom",
  "rand",
  "thiserror",
 ]
