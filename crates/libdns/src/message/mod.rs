@@ -12,6 +12,19 @@ pub enum MessageType {
     Answer = 1,
 }
 
+impl TryFrom<u8> for MessageType {
+    // Use an empty error, because it's pretty clear what's the issue if this fails
+    type Error = ();
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(MessageType::Question),
+            1 => Ok(MessageType::Answer),
+            _ => Err(())
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum QueryOpcode {
     /// A standard query (QUERY)
@@ -25,13 +38,17 @@ pub enum QueryOpcode {
     Reserved = 3,
 }
 
-impl From<u8> for QueryOpcode {
-    fn from(value: u8) -> Self {
+impl TryFrom<u8> for QueryOpcode {
+    // Use an empty error, because it's pretty clear what's the issue if this fails
+    type Error = ();
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
-            0 => Self::Query,
-            1 => Self::Iquery,
-            2 => Self::Status,
-            _ => Self::Reserved,
+            0 => Ok(Self::Query),
+            1 => Ok(Self::Iquery),
+            2 => Ok(Self::Status),
+            3..=15 => Ok(Self::Reserved),
+            _ => Err(())
         }
     }
 }
@@ -59,6 +76,24 @@ pub enum ResponseCode {
     // Numbers 6-15 are reserved for future use. In this implementation, any number greater
     /// than `6` will simply be treated as reserved, and it will not be used for any purpose
     Reserved = 6,
+}
+
+impl TryFrom<u8> for ResponseCode {
+    // Use an empty error, because it's pretty clear what's the issue if this fails
+    type Error = ();
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(Self::NoError),
+            1 => Ok(Self::FormatError),
+            2 => Ok(Self::ServerFailure),
+            3 => Ok(Self::NameError),
+            4 => Ok(Self::NotImplemented),
+            5 => Ok(Self::Refused),
+            6..=15 => Ok(Self::Reserved),
+            _ => Err(())
+        }
+    }
 }
 
 // pub struct DnsMessage {
