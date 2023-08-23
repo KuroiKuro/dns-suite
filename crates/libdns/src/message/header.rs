@@ -1,6 +1,38 @@
+use crate::parse_utils::{byte_parser, bit_parser};
+
 use super::{MessageType, QueryOpcode, ResponseCode};
 use itertools::Itertools;
+use nom::{IResult, number};
 use rand::random;
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum ParseHeaderError {
+    #[error("Error parsing ID in message header")]
+    IdError,
+    #[error("Error parsing Message Type (QR) in message header")]
+    QrError,
+    #[error("Error parsing Opcode in message header")]
+    OpcodeError,
+    #[error("Error parsing Authoritative Answer (AA) in message header")]
+    AaError,
+    #[error("Error parsing Truncation (TC) in message header")]
+    TcError,
+    #[error("Error parsing Recursion Desired (RD) in message header")]
+    RdError,
+    #[error("Error parsing Recursion Available (RA) in message header")]
+    RaError,
+    #[error("Error parsing Response Code (Rcode) in message header")]
+    RcodeError,
+    #[error("Error parsing QDCOUNT in message header")]
+    QdcountError,
+    #[error("Error parsing ANCOUNT in message header")]
+    AncountError,
+    #[error("Error parsing NSCOUNT in message header")]
+    NscountError,
+    #[error("Error parsing ARCOUNT in message header")]
+    ArcountError,
+}
 
 /// A DNS message header. The header contains the following fields:
 ///                               1  1  1  1  1  1
@@ -116,6 +148,98 @@ impl Header {
         let z = 0;
         let rcode = self.response_code as u16;
         qr | opcode | aa | tc | rd | ra | z | rcode
+    }
+
+    // Parsing functions
+    pub fn parse(bytes: &[u8]) -> Result<Self, ParseHeaderError> {
+        let (bytes, id) = Self::parse_u16(bytes).map_err(|_| ParseHeaderError::IdError)?;
+
+        let ((bytes, _), qr) = Self::parse_qr(bytes).map_err(|_| ParseHeaderError::QrError)?;
+        let qr = MessageType::try_from(qr).map_err(|_| ParseHeaderError::QrError)?;
+
+        let ((bytes, _), opcode) = Self::parse_opcode(bytes).map_err(|_| ParseHeaderError::OpcodeError)?;
+        let opcode = QueryOpcode::try_from(opcode).map_err(|_| ParseHeaderError::OpcodeError)?;
+
+        let ((bytes, _), aa) = Self::parse_aa(bytes).map_err(|_| ParseHeaderError::AaError)?;
+        let ((bytes, _), tc) = Self::parse_tc(bytes).map_err(|_| ParseHeaderError::TcError)?;
+        let ((bytes, _), rd) = Self::parse_rd(bytes).map_err(|_| ParseHeaderError::RdError)?;
+        let ((bytes, _), ra) = Self::parse_ra(bytes).map_err(|_| ParseHeaderError::RaError)?;
+
+        let ((bytes, _), rcode) = Self::parse_rcode(bytes).map_err(|_| ParseHeaderError::RcodeError)?;
+        let rcode = ResponseCode::try_from(rcode).map_err(|_| ParseHeaderError::RcodeError)?;
+
+        let (bytes, qdcount) = Self::parse_u16(bytes).map_err(|_| ParseHeaderError::QdcountError)?;
+        let (bytes, ancount) = Self::parse_u16(bytes).map_err(|_| ParseHeaderError::AncountError)?;
+        let (bytes, nscount) = Self::parse_u16(bytes).map_err(|_| ParseHeaderError::NscountError)?;
+        let (_bytes, arcount) = Self::parse_u16(bytes).map_err(|_| ParseHeaderError::ArcountError)?;
+        Ok(
+            Self {
+                id,
+                qr,
+                opcode,
+                authoritative_ans: aa, 
+                truncation: tc, 
+                recursion_desired: rd,
+                recursion_available: ra,
+                response_code: rcode,
+                qdcount,
+                ancount,
+                nscount,
+                arcount,
+            }
+        )
+    }
+
+    /// General function for parsing `ID, `QDCOUNT`, `ANCOUNT`, `NSCOUNT` and `ARCOUNT`,
+    /// which are all `u16s` and do not have special parsing requirements
+    fn parse_u16(bytes: &[u8]) -> IResult<&[u8], u16> {
+        let (remaining_input, parsed) = byte_parser(bytes, 2)?;
+        let (_, parsed_u16) = number::complete::be_u16(parsed)?;
+        Ok((remaining_input, parsed_u16))
+    }
+
+    /// Parse the `qr` bit from the given bytes. The returned bit should be casted to
+    /// `MessageType` by the caller
+    fn parse_qr(bytes: &[u8]) -> IResult<(&[u8], usize), u8> {
+        Ok(bit_parser((bytes, 0), 1)?)
+    }
+
+    /// Parse the `opcode` bit from the given bytes. The returned bit should be casted to
+    /// `QueryOpcode` by the caller
+    fn parse_opcode(bytes: &[u8]) -> IResult<(&[u8], usize), u8> {
+        bit_parser((bytes, 0), 4)
+    }
+
+    fn parse_aa(bytes: &[u8]) -> IResult<(&[u8], usize), bool> {
+        let (remaining_input, parsed) = bit_parser((bytes, 0), 1)?;
+        let aa = parsed == 1;
+        Ok((remaining_input, aa))
+    }
+
+    fn parse_tc(bytes: &[u8]) -> IResult<(&[u8], usize), bool> {
+        let (remaining_input, parsed) = bit_parser((bytes, 0), 1)?;
+        let tc = parsed == 1;
+        Ok((remaining_input, tc))
+    }
+
+    fn parse_rd(bytes: &[u8]) -> IResult<(&[u8], usize), bool> {
+        let (remaining_input, parsed) = bit_parser((bytes, 0), 1)?;
+        let rd = parsed == 1;
+        Ok((remaining_input, rd))
+    }
+
+    fn parse_ra(bytes: &[u8]) -> IResult<(&[u8], usize), bool> {
+        let (remaining_input, parsed) = bit_parser((bytes, 0), 1)?;
+        let ra = parsed == 1;
+        Ok((remaining_input, ra))
+    }
+
+    /// Parse the `rcode` bit from the given bytes. The returned bit should be casted to
+    /// `ResponseCode` by the caller
+    fn parse_rcode(bytes: &[u8]) -> IResult<(&[u8], usize), u8> {
+        // Since rcode is directly after the `Z` section, which is unused in the spec, we will
+        // simply use the offset to skip parsing the `Z` section
+        bit_parser((bytes, 3), 4)
     }
 }
 
