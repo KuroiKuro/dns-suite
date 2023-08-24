@@ -19,7 +19,6 @@ pub struct CharacterString {
     len: usize,
     /// The original ASCII representation of the character string
     char_str: AsciiString,
-    bytes_repr: Vec<u8>,
 }
 
 impl TryFrom<AsciiString> for CharacterString {
@@ -34,20 +33,18 @@ impl TryFrom<AsciiString> for CharacterString {
                 MAX_CHARACTER_STRING_LEN,
             ));
         }
-        let bytes_repr = Self::ascii_to_bytes(&value, len);
         Ok(Self {
             len: value.len(),
             char_str: value,
-            bytes_repr,
         })
     }
 }
 
 impl CharacterString {
     /// Encodes the data of the current `CharacterString` into a new `Vec<u8>`
-    fn ascii_to_bytes(char_str: &AsciiString, len: usize) -> Vec<u8> {
-        let mut bytes_repr: Vec<u8> = vec![len as u8];
-        bytes_repr.extend(char_str.as_bytes());
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes_repr: Vec<u8> = vec![self.len as u8];
+        bytes_repr.extend(self.char_str.as_bytes());
         bytes_repr
     }
 
@@ -61,10 +58,6 @@ impl CharacterString {
 
     pub fn is_empty(&self) -> bool {
         self.len == 0
-    }
-
-    pub fn byte_slice(&self) -> &[u8] {
-        self.bytes_repr.as_ref()
     }
 }
 
@@ -107,9 +100,9 @@ mod tests {
     fn test_bytes_repr() {
         let char_str1 = CharacterString::try_from(AsciiString::from_str("Abcde").unwrap()).unwrap();
         let expected_bytes1: Vec<u8> = vec![5, 65, 98, 99, 100, 101];
-        assert_eq!(char_str1.byte_slice(), &expected_bytes1);
+        assert_eq!(char_str1.to_bytes(), expected_bytes1);
         let empty_char_str = CharacterString::try_from(AsciiString::new()).unwrap();
         let expected_bytes2: Vec<u8> = vec![0];
-        assert_eq!(empty_char_str.byte_slice(), &expected_bytes2);
+        assert_eq!(empty_char_str.to_bytes(), expected_bytes2);
     }
 }

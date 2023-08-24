@@ -118,11 +118,11 @@ impl DomainLabel {
         }
     }
 
-    /// Returns a bytes slice representing the domain label. Following the spec, the
+    /// Returns the bytes representing the domain label. Following the spec, the
     /// first element of the slice will be the length of the label, followed by the
     /// bytes of the label itself
-    pub fn as_bytes(&self) -> &[u8] {
-        self.data.byte_slice()
+    pub fn as_bytes(&self) -> Vec<u8> {
+        self.data.to_bytes()
     }
 
     /// Returns the length of the label, not the total length of the byte slice
@@ -155,14 +155,14 @@ mod tests {
         // of the label + the bytes
         let test_vec: Vec<u8> = vec![3, 99, 111, 109];
         let label = DomainLabel::try_from("com").unwrap();
-        assert_eq!(test_vec, label.data.byte_slice());
+        assert_eq!(test_vec, label.data.to_bytes());
     }
 
     #[test]
     fn test_empty_label_byte_repr() {
         let test_vec: Vec<u8> = vec![0];
         let label = DomainLabel::new_empty();
-        assert_eq!(test_vec, label.data.byte_slice());
+        assert_eq!(test_vec, label.data.to_bytes());
     }
 
     #[test]

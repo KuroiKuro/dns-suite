@@ -101,7 +101,7 @@ impl Rdata for TxtRdata {
     fn to_bytes(&self) -> Vec<u8> {
         self.txt_data
             .iter()
-            .flat_map(|cs| Vec::from(cs.byte_slice()))
+            .flat_map(|cs| cs.to_bytes())
             .collect_vec()
     }
 }
