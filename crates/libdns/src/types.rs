@@ -68,6 +68,29 @@ impl CharacterString {
     }
 }
 
+/// A data type representing a pointer to 1 or more domain labels, included in an
+/// earlier section of a DNS message. This is to support the DNS message compression
+/// specification in RFC 1035, Section 4.1.4
+pub struct DomainPointer {
+    offset: u16,
+}
+
+impl DomainPointer {
+    pub fn new(offset: u16) -> Self {
+        Self { offset }
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        // Based on the spec, a domain pointer will start with two `1` bits
+        let offset_indicator: u16 = 0xC000;
+        // Since a domain pointer is always two octets (16 bits), and we always
+        // need to use `11` as the starting bits, we have no choice but to "discard"
+        // the first 2 bits of an offset
+        let data = offset_indicator | self.offset;
+        data.to_be_bytes().to_vec()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;
