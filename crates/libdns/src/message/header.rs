@@ -154,18 +154,19 @@ impl Header {
     pub fn parse(bytes: &[u8]) -> Result<Self, ParseHeaderError> {
         let (bytes, id) = Self::parse_u16(bytes).map_err(|_| ParseHeaderError::IdError)?;
 
-        let ((bytes, _), qr) = Self::parse_qr(bytes).map_err(|_| ParseHeaderError::QrError)?;
+        let (bytes_with_offset, qr) = Self::parse_qr((bytes, 0)).map_err(|_| ParseHeaderError::QrError)?;
         let qr = MessageType::try_from(qr).map_err(|_| ParseHeaderError::QrError)?;
 
-        let ((bytes, _), opcode) = Self::parse_opcode(bytes).map_err(|_| ParseHeaderError::OpcodeError)?;
+        let (bytes_with_offset, opcode) = Self::parse_opcode(bytes_with_offset).map_err(|_| ParseHeaderError::OpcodeError)?;
         let opcode = QueryOpcode::try_from(opcode).map_err(|_| ParseHeaderError::OpcodeError)?;
 
-        let ((bytes, _), aa) = Self::parse_aa(bytes).map_err(|_| ParseHeaderError::AaError)?;
-        let ((bytes, _), tc) = Self::parse_tc(bytes).map_err(|_| ParseHeaderError::TcError)?;
-        let ((bytes, _), rd) = Self::parse_rd(bytes).map_err(|_| ParseHeaderError::RdError)?;
-        let ((bytes, _), ra) = Self::parse_ra(bytes).map_err(|_| ParseHeaderError::RaError)?;
+        let (bytes_with_offset, aa) = Self::parse_bool_bit(bytes_with_offset).map_err(|_| ParseHeaderError::AaError)?;
+        let (bytes_with_offset, tc) = Self::parse_bool_bit(bytes_with_offset).map_err(|_| ParseHeaderError::TcError)?;
+        let (bytes_with_offset, rd) = Self::parse_bool_bit(bytes_with_offset).map_err(|_| ParseHeaderError::RdError)?;
+        let (bytes_with_offset, ra) = Self::parse_bool_bit(bytes_with_offset).map_err(|_| ParseHeaderError::RaError)?;
 
-        let ((bytes, _), rcode) = Self::parse_rcode(bytes).map_err(|_| ParseHeaderError::RcodeError)?;
+        // The offset shouldn't be used anymore on the last bit parsing action
+        let ((bytes, _), rcode) = Self::parse_rcode(bytes_with_offset).map_err(|_| ParseHeaderError::RcodeError)?;
         let rcode = ResponseCode::try_from(rcode).map_err(|_| ParseHeaderError::RcodeError)?;
 
         let (bytes, qdcount) = Self::parse_u16(bytes).map_err(|_| ParseHeaderError::QdcountError)?;
@@ -199,47 +200,33 @@ impl Header {
     }
 
     /// Parse the `qr` bit from the given bytes. The returned bit should be casted to
-    /// `MessageType` by the caller
-    fn parse_qr(bytes: &[u8]) -> IResult<(&[u8], usize), u8> {
-        Ok(bit_parser((bytes, 0), 1)?)
+    /// `MessageType` by the caller. As the first bit-level parsing function to be
+    /// called, the offset should always be `0`, unless using this parser in a
+    /// different context
+    fn parse_qr(bytes_with_offset: (&[u8], usize)) -> IResult<(&[u8], usize), u8> {
+        bit_parser(bytes_with_offset, 1)
     }
 
     /// Parse the `opcode` bit from the given bytes. The returned bit should be casted to
     /// `QueryOpcode` by the caller
-    fn parse_opcode(bytes: &[u8]) -> IResult<(&[u8], usize), u8> {
-        bit_parser((bytes, 0), 4)
+    fn parse_opcode(bytes_with_offset: (&[u8], usize)) -> IResult<(&[u8], usize), u8> {
+        bit_parser(bytes_with_offset, 4)
     }
 
-    fn parse_aa(bytes: &[u8]) -> IResult<(&[u8], usize), bool> {
-        let (remaining_input, parsed) = bit_parser((bytes, 0), 1)?;
-        let aa = parsed == 1;
-        Ok((remaining_input, aa))
-    }
-
-    fn parse_tc(bytes: &[u8]) -> IResult<(&[u8], usize), bool> {
-        let (remaining_input, parsed) = bit_parser((bytes, 0), 1)?;
-        let tc = parsed == 1;
-        Ok((remaining_input, tc))
-    }
-
-    fn parse_rd(bytes: &[u8]) -> IResult<(&[u8], usize), bool> {
-        let (remaining_input, parsed) = bit_parser((bytes, 0), 1)?;
-        let rd = parsed == 1;
-        Ok((remaining_input, rd))
-    }
-
-    fn parse_ra(bytes: &[u8]) -> IResult<(&[u8], usize), bool> {
-        let (remaining_input, parsed) = bit_parser((bytes, 0), 1)?;
-        let ra = parsed == 1;
-        Ok((remaining_input, ra))
+    fn parse_bool_bit(bytes_with_offset: (&[u8], usize)) -> IResult<(&[u8], usize), bool> {
+        let (remaining_input, parsed) = bit_parser(bytes_with_offset, 1)?;
+        let parsed_bool = parsed == 1;
+        Ok((remaining_input, parsed_bool))
     }
 
     /// Parse the `rcode` bit from the given bytes. The returned bit should be casted to
     /// `ResponseCode` by the caller
-    fn parse_rcode(bytes: &[u8]) -> IResult<(&[u8], usize), u8> {
+    fn parse_rcode(bytes_with_offset: (&[u8], usize)) -> IResult<(&[u8], usize), u8> {
         // Since rcode is directly after the `Z` section, which is unused in the spec, we will
         // simply use the offset to skip parsing the `Z` section
-        bit_parser((bytes, 3), 4)
+        let (bytes, offset) = bytes_with_offset;
+        let new_offset = offset + 3;
+        bit_parser((bytes, new_offset), 4)
     }
 }
 
@@ -455,5 +442,150 @@ mod tests {
             .finalize();
         let header_bytes = header.to_bytes();
         assert_eq!(Vec::from(expected_header), header_bytes);
+    }
+
+    #[test]
+    #[allow(clippy::unusual_byte_groupings)]
+    fn test_header_construction() {
+        let id: u16 = 0x90CB;
+        let header = Header::builder(MessageType::Question)
+            .set_id(id)
+            .set_opcode(QueryOpcode::Query)
+            .set_recursion_desired(true)
+            .set_qdcount(2)
+            .finalize();
+        let expected_bytes: [u8; 12] = [
+            // ID
+            0x90,
+            0xCB,
+            // QR, OPCODE, AA, TC, RD
+            0b0_0000_0_0_1,
+            // RA, Z, RCODE
+            0b0_000_0000,
+            // QDCOUNT
+            0,
+            2,
+            // ANCOUNT
+            0,
+            0,
+            // NSCOUNT
+            0,
+            0,
+            // ARCOUNT
+            0,
+            0,
+        ];
+
+        let header_bytes = header.to_bytes();
+        assert_eq!(expected_bytes.to_vec(), header_bytes);
+
+        let id: u16 = 0x2BA2;
+        let header = Header::builder(MessageType::Answer)
+            .set_id(id)
+            .set_opcode(QueryOpcode::Query)
+            .set_authoritative_ans(true)
+            .set_recursion_desired(true)
+            .set_recursion_available(true)
+            .set_qdcount(3)
+            .set_ancount(3)
+            .finalize();
+        let expected_bytes: [u8; 12] = [
+            // ID
+            0x2B,
+            0xA2,
+            // QR, OPCODE, AA, TC, RD
+            0b1_0000_1_0_1,
+            // RA, Z, RCODE
+            0b1_000_0000,
+            // QDCOUNT
+            0,
+            3,
+            // ANCOUNT
+            0,
+            3,
+            // NSCOUNT
+            0,
+            0,
+            // ARCOUNT
+            0,
+            0,
+        ];
+
+        let header_bytes = header.to_bytes();
+        assert_eq!(expected_bytes.to_vec(), header_bytes);
+    }
+
+    #[test]
+    #[allow(clippy::unusual_byte_groupings)]
+    fn test_header_parse() {
+        let header_bytes: [u8; 12] = [
+            // ID
+            0x90,
+            0xCB,
+            // QR, OPCODE, AA, TC, RD
+            0b0_0000_0_0_1,
+            // RA, Z, RCODE
+            0b0_000_0000,
+            // QDCOUNT
+            0,
+            2,
+            // ANCOUNT
+            0,
+            0,
+            // NSCOUNT
+            0,
+            0,
+            // ARCOUNT
+            0,
+            0,
+        ];
+        let header = Header::parse(&header_bytes).unwrap();
+        assert_eq!(header.id, 0x90CB);
+        assert_eq!(header.qr, MessageType::Question);
+        assert_eq!(header.opcode, QueryOpcode::Query);
+        assert!(!header.authoritative_ans);
+        assert!(!header.truncation);
+        assert!(header.recursion_desired);
+        assert!(!header.recursion_available);
+        assert_eq!(header.response_code, ResponseCode::NoError);
+        assert_eq!(header.qdcount, 2);
+        assert_eq!(header.ancount, 0);
+        assert_eq!(header.nscount, 0);
+        assert_eq!(header.arcount, 0);
+
+        let header_bytes: [u8; 12] = [
+            // ID
+            0x2B,
+            0xA2,
+            // QR, OPCODE, AA, TC, RD
+            0b1_0000_1_0_1,
+            // RA, Z, RCODE
+            0b1_000_0000,
+            // QDCOUNT
+            0,
+            3,
+            // ANCOUNT
+            0,
+            3,
+            // NSCOUNT
+            0,
+            0,
+            // ARCOUNT
+            0,
+            0,
+        ];
+        let header = Header::parse(&header_bytes).unwrap();
+        assert_eq!(header.id, 0x2BA2);
+        assert_eq!(header.qr, MessageType::Answer);
+        assert_eq!(header.opcode, QueryOpcode::Query);
+        assert!(header.authoritative_ans);
+        assert!(!header.truncation);
+        assert!(header.recursion_desired);
+        assert!(header.recursion_available);
+        assert_eq!(header.response_code, ResponseCode::NoError);
+        assert_eq!(header.qdcount, 3);
+        assert_eq!(header.ancount, 3);
+        assert_eq!(header.nscount, 0);
+        assert_eq!(header.arcount, 0);
     }
 }
