@@ -6,7 +6,7 @@ pub trait Message {
 }
 
 // Placeholders
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MessageType {
     Question = 0,
     Answer = 1,
@@ -25,7 +25,7 @@ impl TryFrom<u8> for MessageType {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum QueryOpcode {
     /// A standard query (QUERY)
     Query = 0,
@@ -53,7 +53,7 @@ impl TryFrom<u8> for QueryOpcode {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ResponseCode {
     /// No error condition
     NoError = 0,
