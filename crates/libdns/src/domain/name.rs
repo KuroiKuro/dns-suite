@@ -86,7 +86,7 @@ impl DomainName {
         self.domain_labels
             .iter()
             .chain(&[DomainLabel::new_empty()])
-            .flat_map(|label| Vec::from(label.as_bytes()))
+            .flat_map(|label| label.as_bytes())
             .collect_vec()
     }
 }
