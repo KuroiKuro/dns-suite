@@ -63,7 +63,7 @@ impl TryFrom<&AsciiStr> for DomainLabel {
     type Error = DomainLabelValidationError;
 
     fn try_from(value: &AsciiStr) -> Result<Self, Self::Error> {
-        Self::validate_label(&value)?;
+        Self::validate_label(value)?;
         let data = CharacterString::try_from(value.to_ascii_string()).unwrap();
         Ok(Self { data })
     }
