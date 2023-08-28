@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{str::FromStr, collections::{HashMap, VecDeque}};
 
 use ascii::{AsciiChar, AsciiString};
 use itertools::Itertools;
@@ -7,6 +7,8 @@ use thiserror::Error;
 use super::{DomainLabel, DomainLabelValidationError};
 
 const DOMAIN_NAME_LENGTH_LIMIT: usize = 255;
+// All pointers must have `11` as the first two bits
+const POINTER_PREFIX: u16 = 0xC000;
 
 #[derive(Debug, Error)]
 pub enum DomainNameValidationError {
@@ -86,9 +88,53 @@ impl DomainName {
         self.domain_labels
             .iter()
             .chain(&[DomainLabel::new_empty()])
-            .flat_map(|label| label.as_bytes())
+            .flat_map(|label| label.to_bytes())
             .collect_vec()
     }
+
+    pub fn to_bytes_compressed(&self, base_offset: u16, label_map: &mut HashMap<&[DomainLabel], u16>) -> Vec<u8> {
+        // Check if the entire domain name is in the hashmap
+        if let Some(offset) = label_map.get(self.domain_labels.as_slice()) {
+            let pointer: u16 = POINTER_PREFIX | offset;
+            return pointer.to_be_bytes().to_vec();
+        } else {
+            label_map.insert(&self.domain_labels, base_offset);
+        }
+
+        let mut rolling_offset = base_offset;
+        let mut popped_labels: Vec<DomainLabel> = Vec::with_capacity(self.domain_labels.len());
+        let mut bytes: Vec<u8> = Vec::new();
+        let mut labels: Vec<DomainLabel> = self.domain_labels.clone();
+        labels.reverse();
+        loop {
+            let popped = labels.pop();
+            if popped.is_none() {
+                break;
+            }
+            let label = popped.unwrap();
+            rolling_offset += label.len() as u16;
+            popped_labels.push(label);
+            if let Some(offset) = label_map.get(labels.as_slice()) {
+                // We have found an offset we can use
+                let pointer = POINTER_PREFIX | offset;
+                let label_bytes: Vec<u8> = popped_labels
+                    .iter()
+                    .flat_map(|label| label.to_bytes())
+                    .chain(pointer.to_be_bytes().into_iter())
+                    .collect();
+                return label_bytes;
+            } else {
+                // Offset was not found, so cache the remaining labels into label_map
+                label_map.insert(&labels, rolling_offset);
+            }
+        }
+        // If loop was broken, no offset was used
+        labels
+            .into_iter()
+            .flat_map(|label| label.to_bytes())
+            .collect_vec()
+    }
+
 }
 
 #[cfg(test)]

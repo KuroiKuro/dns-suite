@@ -13,7 +13,7 @@ pub enum CharacterStringError {
 /// <character-string> is a single length octet followed by that number of characters.
 /// <character-string> is treated as binary information, and can be up to 256 characters
 /// in length (including the length octet).
-#[derive(Debug)]
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct CharacterString {
     /// The length of the character string
     len: usize,

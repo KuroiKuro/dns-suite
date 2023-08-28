@@ -38,7 +38,7 @@ pub enum DomainLabelValidationError {
 ///
 /// Note that in the current implementation, IDNA is not supported, and only
 /// pure ASCII characters for domain labels are supported
-#[derive(Debug)]
+#[derive(Debug, Hash, Eq, Clone)]
 pub struct DomainLabel {
     data: CharacterString,
 }
@@ -121,7 +121,7 @@ impl DomainLabel {
     /// Returns the bytes representing the domain label. Following the spec, the
     /// first element of the slice will be the length of the label, followed by the
     /// bytes of the label itself
-    pub fn as_bytes(&self) -> Vec<u8> {
+    pub fn to_bytes(&self) -> Vec<u8> {
         self.data.to_bytes()
     }
 
