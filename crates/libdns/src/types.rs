@@ -1,6 +1,8 @@
 use ascii::AsciiString;
 use thiserror::Error;
 
+use crate::BytesSerializable;
+
 pub const MAX_CHARACTER_STRING_LEN: usize = 256;
 
 #[derive(Debug, Error)]
@@ -41,13 +43,6 @@ impl TryFrom<AsciiString> for CharacterString {
 }
 
 impl CharacterString {
-    /// Encodes the data of the current `CharacterString` into a new `Vec<u8>`
-    pub fn to_bytes(&self) -> Vec<u8> {
-        let mut bytes_repr: Vec<u8> = vec![self.len as u8];
-        bytes_repr.extend(self.char_str.as_bytes());
-        bytes_repr
-    }
-
     pub fn len(&self) -> usize {
         self.len
     }
@@ -58,6 +53,20 @@ impl CharacterString {
 
     pub fn is_empty(&self) -> bool {
         self.len == 0
+    }
+}
+
+impl BytesSerializable for CharacterString {
+    type ParseError = ();
+    
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes_repr: Vec<u8> = vec![self.len as u8];
+        bytes_repr.extend(self.char_str.as_bytes());
+        bytes_repr
+    }
+
+    fn parse(bytes: &[u8]) -> Result<Self, Self::ParseError> {
+        todo!()
     }
 }
 
@@ -72,8 +81,12 @@ impl DomainPointer {
     pub fn new(offset: u16) -> Self {
         Self { offset }
     }
+}
 
-    pub fn to_bytes(&self) -> Vec<u8> {
+impl BytesSerializable for DomainPointer {
+    type ParseError = ();
+    
+    fn to_bytes(&self) -> Vec<u8> {
         // Based on the spec, a domain pointer will start with two `1` bits
         let offset_indicator: u16 = 0xC000;
         // Since a domain pointer is always two octets (16 bits), and we always
@@ -81,6 +94,10 @@ impl DomainPointer {
         // the first 2 bits of an offset
         let data = offset_indicator | self.offset;
         data.to_be_bytes().to_vec()
+    }
+
+    fn parse(bytes: &[u8]) -> Result<Self, Self::ParseError> {
+        todo!()
     }
 }
 

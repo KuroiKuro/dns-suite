@@ -1,6 +1,7 @@
 use std::net::Ipv4Addr;
 
-use super::Rdata;
+use crate::BytesSerializable;
+
 /// Hosts that have multiple Internet addresses will have multiple A records.
 /// A records cause no additional section processing. The RDATA section of an A line in a master
 /// file is an Internet address expressed as four decimal numbers separated by dots without any
@@ -10,8 +11,14 @@ pub struct ARdata {
     address: Ipv4Addr,
 }
 
-impl Rdata for ARdata {
+impl BytesSerializable for ARdata {
+    type ParseError = ();
+    
     fn to_bytes(&self) -> Vec<u8> {
         Vec::from(self.address.octets())
+    }
+
+    fn parse(bytes: &[u8]) -> Result<Self, Self::ParseError> {
+        todo!()    
     }
 }

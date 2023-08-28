@@ -4,7 +4,7 @@ use ascii::{AsciiChar, AsciiString};
 use itertools::Itertools;
 use thiserror::Error;
 
-use crate::LabelMap;
+use crate::{LabelMap, BytesSerializable, CompressedBytesSerializable};
 
 use super::{DomainLabel, DomainLabelValidationError};
 
@@ -86,7 +86,13 @@ impl PartialEq for DomainName {
 }
 
 impl DomainName {
-    pub fn to_bytes(&self) -> Vec<u8> {
+    
+}
+
+impl BytesSerializable for DomainName {
+    type ParseError = ();
+    
+    fn to_bytes(&self) -> Vec<u8> {
         self.domain_labels
             .iter()
             .chain(&[DomainLabel::new_empty()])
@@ -94,7 +100,13 @@ impl DomainName {
             .collect_vec()
     }
 
-    pub fn to_bytes_compressed(&self, base_offset: u16, label_map: &mut LabelMap) -> Vec<u8> {
+    fn parse(bytes: &[u8]) -> Result<Self, Self::ParseError> {
+        todo!()
+    }
+}
+
+impl CompressedBytesSerializable for DomainName {
+    fn to_bytes_compressed(&self, base_offset: u16, label_map: &mut LabelMap) -> Vec<u8> {
         // Check if the entire domain name is in the hashmap
         let domain_labels_vec_deque = VecDeque::from(self.domain_labels.clone());
         if let Some(offset) = label_map.get(&domain_labels_vec_deque) {
@@ -137,6 +149,9 @@ impl DomainName {
             .collect_vec()
     }
 
+    fn parse_compressed(bytes: &[u8], base_offset: u16, label_map: &mut LabelMap) -> Self {
+        todo!()
+    }
 }
 
 #[cfg(test)]

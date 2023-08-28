@@ -2,45 +2,59 @@ use std::num::Wrapping;
 
 use itertools::Itertools;
 
-use crate::{domain::DomainName, types::CharacterString};
+use crate::{domain::DomainName, types::CharacterString, BytesSerializable};
 
 pub mod internet;
 
-/// A trait to be implemented by a resource type
-pub trait Rdata {
-    fn to_bytes(&self) -> Vec<u8>;
-}
 
 /// A type representing the data of a `CNAME` resource type.
 /// A <domain-name> which specifies the canonical or primary name for the owner.
 /// The owner name is an alias.
-pub struct CnameRdata {
+pub struct CnameBytes {
     cname: DomainName,
 }
 
-impl Rdata for CnameRdata {
+impl BytesSerializable for CnameBytes {
+    type ParseError = ();
+
     fn to_bytes(&self) -> Vec<u8> {
         self.cname.to_bytes()
     }
-}
 
-pub struct NsdnameRdata {
-    nsdname: DomainName,
-}
-
-impl Rdata for NsdnameRdata {
-    fn to_bytes(&self) -> Vec<u8> {
-        self.nsdname.to_bytes()
+    fn parse(bytes: &[u8]) -> Result<Self, Self::ParseError> {
+        todo!()
     }
 }
 
-pub struct PtrRdata {
+pub struct NsdnameBytes {
+    nsdname: DomainName,
+}
+
+impl BytesSerializable for NsdnameBytes {
+    type ParseError = ();
+    
+    fn to_bytes(&self) -> Vec<u8> {
+        self.nsdname.to_bytes()
+    }
+
+    fn parse(bytes: &[u8]) -> Result<Self, Self::ParseError> {
+        todo!()
+    }
+}
+
+pub struct PtrBytes {
     ptrdname: DomainName,
 }
 
-impl Rdata for PtrRdata {
+impl BytesSerializable for PtrBytes {
+    type ParseError = ();
+    
     fn to_bytes(&self) -> Vec<u8> {
         self.ptrdname.to_bytes()
+    }
+
+    fn parse(bytes: &[u8]) -> Result<Self, Self::ParseError> {
+        todo!()
     }
 }
 
@@ -52,7 +66,7 @@ impl Rdata for PtrRdata {
 /// occur when the RRs are copied into the response and not when the zone is loaded from a master file or via a
 /// zone transfer. The reason for this provison is to allow future dynamic update facilities to change the SOA
 /// RR with known semantics.
-pub struct SoaRdata {
+pub struct SoaBytes {
     /// The <domain-name> of the name server that was the original or primary source of data for this zone.
     mname: DomainName,
     /// A <domain-name> which specifies the mailbox of the person responsible for this zone.
@@ -71,7 +85,9 @@ pub struct SoaRdata {
     minimum: u32,
 }
 
-impl Rdata for SoaRdata {
+impl BytesSerializable for SoaBytes {
+    type ParseError = ();
+    
     fn to_bytes(&self) -> Vec<u8> {
         [&self.mname, &self.rname]
             .iter()
@@ -90,19 +106,29 @@ impl Rdata for SoaRdata {
             )
             .collect_vec()
     }
+
+    fn parse(bytes: &[u8]) -> Result<Self, Self::ParseError> {
+        todo!()
+    }
 }
 
 /// TXT RRs are used to hold descriptive text. The semantics of the text depends on the domain where it is found.
-pub struct TxtRdata {
+pub struct TxtBytes {
     /// One or more <character-string>s.
     txt_data: Vec<CharacterString>,
 }
 
-impl Rdata for TxtRdata {
+impl BytesSerializable for TxtBytes {
+    type ParseError = ();
+    
     fn to_bytes(&self) -> Vec<u8> {
         self.txt_data
             .iter()
             .flat_map(|cs| cs.to_bytes())
             .collect_vec()
+    }
+
+    fn parse(bytes: &[u8]) -> Result<Self, Self::ParseError> {
+        todo!()
     }
 }

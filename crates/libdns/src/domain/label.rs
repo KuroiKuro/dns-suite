@@ -7,7 +7,7 @@ use ascii::{AsciiChar, AsciiStr, AsciiString};
 use itertools::{Itertools, Position};
 use thiserror::Error;
 
-use crate::types::CharacterString;
+use crate::{types::CharacterString, BytesSerializable};
 
 const MAX_LABEL_LENGTH: usize = 63;
 // TODO: enable punycode in future
@@ -118,13 +118,6 @@ impl DomainLabel {
         }
     }
 
-    /// Returns the bytes representing the domain label. Following the spec, the
-    /// first element of the slice will be the length of the label, followed by the
-    /// bytes of the label itself
-    pub fn to_bytes(&self) -> Vec<u8> {
-        self.data.to_bytes()
-    }
-
     /// Returns the length of the label, not the total length of the byte slice
     /// that will be returned by `to_bytes`
     pub fn len(&self) -> usize {
@@ -140,6 +133,21 @@ impl DomainLabel {
 
     pub fn is_empty(&self) -> bool {
         self.data.len() == 0
+    }
+}
+
+
+impl BytesSerializable for DomainLabel {
+    type ParseError = ();
+    /// Returns the bytes representing the domain label. Following the spec, the
+    /// first element of the slice will be the length of the label, followed by the
+    /// bytes of the label itself
+    fn to_bytes(&self) -> Vec<u8> {
+        self.data.to_bytes()
+    }
+
+    fn parse(bytes: &[u8]) -> Result<Self, Self::ParseError> where Self: std::marker::Sized {
+        todo!()
     }
 }
 
