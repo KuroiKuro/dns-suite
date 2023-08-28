@@ -6,6 +6,7 @@ use crate::{domain::DomainName, types::CharacterString};
 
 pub mod internet;
 
+/// A trait to be implemented by a resource type
 pub trait Rdata {
     fn to_bytes(&self) -> Vec<u8>;
 }
