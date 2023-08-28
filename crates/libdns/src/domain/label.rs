@@ -126,9 +126,16 @@ impl DomainLabel {
     }
 
     /// Returns the length of the label, not the total length of the byte slice
-    /// that will be returned by `as_bytes`
+    /// that will be returned by `to_bytes`
     pub fn len(&self) -> usize {
         self.data.len()
+    }
+
+    /// Returns the would-be length of the label if it were to be serialized to
+    /// bytes. The value is basically `self.len() + 1`, as it simply includes the
+    /// length of the label that will be the first byte of the serialized label bytes
+    pub fn bytes_len(&self) -> usize {
+        self.len() + 1
     }
 
     pub fn is_empty(&self) -> bool {
