@@ -92,18 +92,17 @@ impl DomainName {
             .collect_vec()
     }
 
-    pub fn to_bytes_compressed(&self, base_offset: u16, label_map: &mut HashMap<&[DomainLabel], u16>) -> Vec<u8> {
+    pub fn to_bytes_compressed(&self, base_offset: u16, label_map: &mut HashMap<Vec<DomainLabel>, u16>) -> Vec<u8> {
         // Check if the entire domain name is in the hashmap
         if let Some(offset) = label_map.get(self.domain_labels.as_slice()) {
             let pointer: u16 = POINTER_PREFIX | offset;
             return pointer.to_be_bytes().to_vec();
         } else {
-            label_map.insert(&self.domain_labels, base_offset);
+            label_map.insert(self.domain_labels.clone(), base_offset);
         }
 
         let mut rolling_offset = base_offset;
         let mut popped_labels: Vec<DomainLabel> = Vec::with_capacity(self.domain_labels.len());
-        let mut bytes: Vec<u8> = Vec::new();
         let mut labels: Vec<DomainLabel> = self.domain_labels.clone();
         labels.reverse();
         loop {
@@ -112,7 +111,7 @@ impl DomainName {
                 break;
             }
             let label = popped.unwrap();
-            rolling_offset += label.len() as u16;
+            rolling_offset += label.bytes_len() as u16;
             popped_labels.push(label);
             if let Some(offset) = label_map.get(labels.as_slice()) {
                 // We have found an offset we can use
@@ -120,18 +119,19 @@ impl DomainName {
                 let label_bytes: Vec<u8> = popped_labels
                     .iter()
                     .flat_map(|label| label.to_bytes())
-                    .chain(pointer.to_be_bytes().into_iter())
+                    .chain(pointer.to_be_bytes())
                     .collect();
                 return label_bytes;
             } else {
                 // Offset was not found, so cache the remaining labels into label_map
-                label_map.insert(&labels, rolling_offset);
+                label_map.insert(labels.clone(), rolling_offset);
             }
         }
         // If loop was broken, no offset was used
-        labels
+        popped_labels
             .into_iter()
             .flat_map(|label| label.to_bytes())
+            .chain([0])
             .collect_vec()
     }
 
@@ -155,6 +155,26 @@ mod tests {
         .collect();
 
         let domain_bytes = domain_name.to_bytes();
+        assert_eq!(expected_tags, domain_bytes);
+    }
+
+    #[test]
+    fn test_to_bytes_compressed() {
+        // Test that output will be same as non-compressed version with empty hashmap
+        let mut label_map = HashMap::new();
+        let offset = 0;
+        let domain_name = DomainName::try_from("outlook.live.com").unwrap();
+        let expected_tags: Vec<u8> = vec![
+            vec![7, 111, 117, 116, 108, 111, 111, 107],
+            vec![4, 108, 105, 118, 101],
+            vec![3, 99, 111, 109],
+            vec![0],
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
+
+        let domain_bytes = domain_name.to_bytes_compressed(offset, &mut label_map);
         assert_eq!(expected_tags, domain_bytes);
     }
 }
