@@ -204,19 +204,19 @@ mod tests {
         assert_eq!(expected_bytes, domain_bytes);
 
         // Test with "com" in the label_map
-        // label_map.clear();
-        // let half_domain = DomainName::try_from("live.com").unwrap();
-        // let half_labels = VecDeque::from(half_domain.domain_labels.clone());
-        // let half_domain_offset = 19;
-        // label_map.insert(half_labels, half_domain_offset);
-        // let expected_bytes: Vec<u8> = vec![
-        //     vec![7, 111, 117, 116, 108, 111, 111, 107],
-        //     (POINTER_PREFIX | half_domain_offset).to_be_bytes().to_vec()
-        // ]
-        // .into_iter()
-        // .flatten()
-        // .collect();
-        // let domain_bytes = domain_name.to_bytes_compressed(half_domain_offset, &mut label_map);
-        // assert_eq!(expected_bytes, domain_bytes);
+        label_map.clear();
+        let com_labels = VecDeque::from([DomainLabel::try_from("com").unwrap()]);
+        let com_offset = 33;
+        label_map.insert(com_labels, com_offset);
+        let expected_bytes: Vec<u8> = vec![
+            vec![7, 111, 117, 116, 108, 111, 111, 107],
+            vec![4, 108, 105, 118, 101],
+            (POINTER_PREFIX | com_offset).to_be_bytes().to_vec()
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
+        let domain_bytes = domain_name.to_bytes_compressed(com_offset, &mut label_map);
+        assert_eq!(expected_bytes, domain_bytes);
     }
 }
