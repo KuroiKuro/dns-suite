@@ -4,6 +4,8 @@ use ascii::{AsciiChar, AsciiString};
 use itertools::Itertools;
 use thiserror::Error;
 
+use crate::LabelMap;
+
 use super::{DomainLabel, DomainLabelValidationError};
 
 const DOMAIN_NAME_LENGTH_LIMIT: usize = 255;
@@ -92,7 +94,7 @@ impl DomainName {
             .collect_vec()
     }
 
-    pub fn to_bytes_compressed(&self, base_offset: u16, label_map: &mut HashMap<VecDeque<DomainLabel>, u16>) -> Vec<u8> {
+    pub fn to_bytes_compressed(&self, base_offset: u16, label_map: &mut LabelMap) -> Vec<u8> {
         // Check if the entire domain name is in the hashmap
         let domain_labels_vec_deque = VecDeque::from(self.domain_labels.clone());
         if let Some(offset) = label_map.get(&domain_labels_vec_deque) {
