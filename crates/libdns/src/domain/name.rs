@@ -92,28 +92,28 @@ impl DomainName {
             .collect_vec()
     }
 
-    pub fn to_bytes_compressed(&self, base_offset: u16, label_map: &mut HashMap<Vec<DomainLabel>, u16>) -> Vec<u8> {
+    pub fn to_bytes_compressed(&self, base_offset: u16, label_map: &mut HashMap<VecDeque<DomainLabel>, u16>) -> Vec<u8> {
         // Check if the entire domain name is in the hashmap
-        if let Some(offset) = label_map.get(self.domain_labels.as_slice()) {
+        let domain_labels_vec_deque = VecDeque::from(self.domain_labels.clone());
+        if let Some(offset) = label_map.get(&domain_labels_vec_deque) {
             let pointer: u16 = POINTER_PREFIX | offset;
             return pointer.to_be_bytes().to_vec();
         } else {
-            label_map.insert(self.domain_labels.clone(), base_offset);
+            label_map.insert(domain_labels_vec_deque, base_offset);
         }
 
         let mut rolling_offset = base_offset;
         let mut popped_labels: Vec<DomainLabel> = Vec::with_capacity(self.domain_labels.len());
-        let mut labels: Vec<DomainLabel> = self.domain_labels.clone();
-        labels.reverse();
+        let mut labels: VecDeque<DomainLabel> = VecDeque::from(self.domain_labels.clone());
         loop {
-            let popped = labels.pop();
+            let popped = labels.pop_front();
             if popped.is_none() {
                 break;
             }
             let label = popped.unwrap();
             rolling_offset += label.bytes_len() as u16;
             popped_labels.push(label);
-            if let Some(offset) = label_map.get(labels.as_slice()) {
+            if let Some(offset) = label_map.get(&labels) {
                 // We have found an offset we can use
                 let pointer = POINTER_PREFIX | offset;
                 let label_bytes: Vec<u8> = popped_labels
@@ -164,7 +164,7 @@ mod tests {
         let mut label_map = HashMap::new();
         let offset = 0;
         let domain_name = DomainName::try_from("outlook.live.com").unwrap();
-        let expected_tags: Vec<u8> = vec![
+        let expected_bytes: Vec<u8> = vec![
             vec![7, 111, 117, 116, 108, 111, 111, 107],
             vec![4, 108, 105, 118, 101],
             vec![3, 99, 111, 109],
@@ -175,6 +175,48 @@ mod tests {
         .collect();
 
         let domain_bytes = domain_name.to_bytes_compressed(offset, &mut label_map);
-        assert_eq!(expected_tags, domain_bytes);
+        assert_eq!(expected_bytes, domain_bytes);
+
+        // Test with full domain present in the map
+        let full_domain_labels = VecDeque::from(domain_name.domain_labels.clone());
+        let full_domain_offset = 14;
+        label_map.insert(full_domain_labels, full_domain_offset);
+        let expected_bytes = (POINTER_PREFIX | full_domain_offset)
+            .to_be_bytes()
+            .to_vec();
+        let domain_bytes = domain_name.to_bytes_compressed(full_domain_offset, &mut label_map);
+        assert_eq!(expected_bytes, domain_bytes);
+
+        // Test with "live.com" in the label_map
+        label_map.clear();
+        let half_domain = DomainName::try_from("live.com").unwrap();
+        let half_labels = VecDeque::from(half_domain.domain_labels.clone());
+        let half_domain_offset = 19;
+        label_map.insert(half_labels, half_domain_offset);
+        let expected_bytes: Vec<u8> = vec![
+            vec![7, 111, 117, 116, 108, 111, 111, 107],
+            (POINTER_PREFIX | half_domain_offset).to_be_bytes().to_vec()
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
+        let domain_bytes = domain_name.to_bytes_compressed(half_domain_offset, &mut label_map);
+        assert_eq!(expected_bytes, domain_bytes);
+
+        // Test with "com" in the label_map
+        // label_map.clear();
+        // let half_domain = DomainName::try_from("live.com").unwrap();
+        // let half_labels = VecDeque::from(half_domain.domain_labels.clone());
+        // let half_domain_offset = 19;
+        // label_map.insert(half_labels, half_domain_offset);
+        // let expected_bytes: Vec<u8> = vec![
+        //     vec![7, 111, 117, 116, 108, 111, 111, 107],
+        //     (POINTER_PREFIX | half_domain_offset).to_be_bytes().to_vec()
+        // ]
+        // .into_iter()
+        // .flatten()
+        // .collect();
+        // let domain_bytes = domain_name.to_bytes_compressed(half_domain_offset, &mut label_map);
+        // assert_eq!(expected_bytes, domain_bytes);
     }
 }
