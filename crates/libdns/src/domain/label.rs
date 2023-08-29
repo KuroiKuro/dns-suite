@@ -1,6 +1,6 @@
 // use idna::punycode;
 
-use std::cmp::PartialEq;
+use std::{cmp::PartialEq, hash::Hash};
 use std::str::FromStr;
 
 use ascii::{AsciiChar, AsciiStr, AsciiString};
@@ -38,7 +38,7 @@ pub enum DomainLabelValidationError {
 ///
 /// Note that in the current implementation, IDNA is not supported, and only
 /// pure ASCII characters for domain labels are supported
-#[derive(Debug, Hash, Eq, Clone)]
+#[derive(Debug, Eq, Clone)]
 pub struct DomainLabel {
     data: CharacterString,
 }
@@ -75,6 +75,12 @@ impl PartialEq for DomainLabel {
         let self_label = self.data.char_str().to_ascii_lowercase();
         let other_label = other.data.char_str().to_ascii_lowercase();
         self_label == other_label
+    }
+}
+
+impl Hash for DomainLabel {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        state.write(self.data.as_bytes());
     }
 }
 
