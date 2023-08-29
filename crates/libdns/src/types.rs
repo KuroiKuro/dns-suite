@@ -54,6 +54,10 @@ impl CharacterString {
     pub fn is_empty(&self) -> bool {
         self.len == 0
     }
+
+    pub fn as_bytes(&self) -> &[u8] {
+        self.char_str.as_bytes()
+    }
 }
 
 impl BytesSerializable for CharacterString {
