@@ -26,6 +26,7 @@ pub enum DomainNameValidationError {
     InvalidAscii(String),
 }
 
+#[derive(Clone)]
 pub struct DomainName {
     domain_labels: Vec<DomainLabel>,
     domain_name: AsciiString,
