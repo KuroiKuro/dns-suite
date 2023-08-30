@@ -86,7 +86,6 @@ impl Hash for DomainLabel {
 
 impl DomainLabel {
     fn validate_label(label: &AsciiStr) -> Result<(), DomainLabelValidationError> {
-        let chars = label.clone().chars();
         let label_len = label.len();
         if label_len > MAX_LABEL_LENGTH {
             return Err(DomainLabelValidationError::LabelTooLong(
@@ -95,6 +94,7 @@ impl DomainLabel {
             ));
         }
 
+        let chars = label.clone().chars();
         for (pos, ch) in chars.with_position() {
             if pos == Position::First && !ch.is_alphabetic() {
                 return Err(DomainLabelValidationError::InvalidStartChar(
