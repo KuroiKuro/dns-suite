@@ -83,13 +83,6 @@ impl MessageQuestions {
     pub fn new(questions: Vec<Question>) -> Self {
         Self { questions }
     }
-
-    // pub fn to_bytes_compressed(&self, base_offset: u16, label_map: &mut LabelMap) -> (Vec<u8>, u16) {
-    //     let rolling_offset = 
-    //     for question in self.questions {
-
-    //     }
-    // }
 }
 
 impl BytesSerializable for MessageQuestions {
@@ -125,5 +118,45 @@ impl CompressedBytesSerializable for MessageQuestions {
 
     fn parse_compressed(bytes: &[u8], base_offset: u16, label_map: &mut crate::LabelMap) -> (Result<Self, Self::ParseError>, u16) where Self: std::marker::Sized {
         todo!()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_question_to_bytes() {
+        let qname = DomainName::try_from("sheets.google.com").unwrap();
+        let qtype = Qtype::A;
+        let qclass = ResourceRecordQClass::In;
+        let question = Question::new(qname.clone(), qtype, qclass);
+
+        let expected_bytes = [
+            qname.to_bytes(),
+            (qtype as u16).to_be_bytes().to_vec(),
+            (qclass as u16).to_be_bytes().to_vec(),
+        ]
+            .into_iter()
+            .flatten()
+            .collect_vec();
+        let bytes = question.to_bytes();
+        assert_eq!(bytes, expected_bytes);
+
+        let qname = DomainName::try_from("audi.com").unwrap();
+        let qtype = Qtype::A;
+        let qclass = ResourceRecordQClass::In;
+        let question = Question::new(qname.clone(), qtype, qclass);
+
+        let expected_bytes = [
+            qname.to_bytes(),
+            (qtype as u16).to_be_bytes().to_vec(),
+            (qclass as u16).to_be_bytes().to_vec(),
+        ]
+            .into_iter()
+            .flatten()
+            .collect_vec();
+        let bytes = question.to_bytes();
+        assert_eq!(bytes, expected_bytes);
     }
 }
