@@ -10,7 +10,7 @@ use super::{DomainLabel, DomainLabelValidationError};
 
 const DOMAIN_NAME_LENGTH_LIMIT: u8 = 255;
 // All pointers must have `11` as the first two bits
-const POINTER_PREFIX: u16 = 0xC000;
+pub const POINTER_PREFIX: u16 = 0xC000;
 
 #[derive(Debug, Error)]
 pub enum DomainNameValidationError {

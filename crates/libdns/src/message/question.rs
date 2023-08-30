@@ -66,7 +66,9 @@ impl CompressedBytesSerializable for Question {
             .chain((self.qtype as u16).to_be_bytes())
             .chain((self.qclass as u16).to_be_bytes())
             .collect_vec();
-        let new_offset = changed_offset + (bytes.len() as u16);
+        
+        // Add 4 which is the number of bytes of qtype and qclass added together
+        let new_offset = changed_offset + 4;
         (bytes, new_offset)
     }
 
@@ -123,6 +125,10 @@ impl CompressedBytesSerializable for MessageQuestions {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::{HashMap, VecDeque};
+
+    use crate::{LabelMap, domain::{DomainLabel, POINTER_PREFIX}};
+
     use super::*;
 
     #[test]
@@ -158,5 +164,76 @@ mod tests {
             .collect_vec();
         let bytes = question.to_bytes();
         assert_eq!(bytes, expected_bytes);
+    }
+
+    #[test]
+    fn test_question_to_bytes_compressed() {
+        let qname = DomainName::try_from("sheets.google.com").unwrap();
+        let qtype = Qtype::A;
+        let qclass = ResourceRecordQClass::In;
+        let question = Question::new(qname.clone(), qtype, qclass);
+
+        let offset: u16 = 191;
+        let mut label_map: LabelMap = HashMap::new();
+        // Test with no compression available
+        let expected_bytes = [
+            qname.to_bytes(),
+            (qtype as u16).to_be_bytes().to_vec(),
+            (qclass as u16).to_be_bytes().to_vec(),
+        ]
+            .into_iter()
+            .flatten()
+            .collect_vec();
+        let (bytes, new_offset) = question.to_bytes_compressed(offset, &mut label_map);
+        assert_eq!(bytes, expected_bytes);
+        assert_eq!(new_offset, (expected_bytes.len() as u16) + offset);
+
+        // Test with "google.com" compression available
+        label_map.clear();
+        let google_com_labels = VecDeque::from([
+            DomainLabel::try_from("google").unwrap(),
+            DomainLabel::try_from("com").unwrap(),
+        ]);
+        let google_com_offset = 46;
+        let offset = 97;
+        label_map.insert(google_com_labels, google_com_offset);
+
+        let expected_bytes = [
+            DomainLabel::try_from("sheets").unwrap().to_bytes(),
+            (POINTER_PREFIX | google_com_offset).to_be_bytes().to_vec(),
+            (qtype as u16).to_be_bytes().to_vec(),
+            (qclass as u16).to_be_bytes().to_vec(),
+        ]
+            .into_iter()
+            .flatten()
+            .collect_vec();
+
+        let (bytes, new_offset) = question.to_bytes_compressed(offset, &mut label_map);
+        assert_eq!(bytes, expected_bytes);
+        assert_eq!(new_offset, (expected_bytes.len() as u16) + offset);
+
+        // Test with ".com" compression available
+        label_map.clear();
+        let com_labels = VecDeque::from([
+            DomainLabel::try_from("com").unwrap(),
+        ]);
+        let com_offset = 102;
+        let offset = 55;
+        label_map.insert(com_labels, com_offset);
+
+        let expected_bytes = [
+            DomainLabel::try_from("sheets").unwrap().to_bytes(),
+            DomainLabel::try_from("google").unwrap().to_bytes(),
+            (POINTER_PREFIX | com_offset).to_be_bytes().to_vec(),
+            (qtype as u16).to_be_bytes().to_vec(),
+            (qclass as u16).to_be_bytes().to_vec(),
+        ]
+            .into_iter()
+            .flatten()
+            .collect_vec();
+
+        let (bytes, new_offset) = question.to_bytes_compressed(offset, &mut label_map);
+        assert_eq!(bytes, expected_bytes);
+        assert_eq!(new_offset, (expected_bytes.len() as u16) + offset);
     }
 }
