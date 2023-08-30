@@ -20,6 +20,7 @@ pub trait BytesSerializable {
 /// A trait for types that can serialize and parse their data in bytes that are
 /// compressed in the specification in RFC 1035.
 pub trait CompressedBytesSerializable {
-    fn to_bytes_compressed(&self, base_offset: u16, label_map: &mut LabelMap) -> Vec<u8>;
-    fn parse_compressed(bytes: &[u8], base_offset: u16, label_map: &mut LabelMap) -> Self;
+    type ParseError;
+    fn to_bytes_compressed(&self, base_offset: u16, label_map: &mut LabelMap) -> (Vec<u8>, u16);
+    fn parse_compressed(bytes: &[u8], base_offset: u16, label_map: &mut LabelMap) -> (Result<Self, Self::ParseError>, u16) where Self: std::marker::Sized;
 }

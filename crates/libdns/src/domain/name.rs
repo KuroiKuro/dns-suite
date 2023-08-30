@@ -8,7 +8,7 @@ use crate::{LabelMap, BytesSerializable, CompressedBytesSerializable};
 
 use super::{DomainLabel, DomainLabelValidationError};
 
-const DOMAIN_NAME_LENGTH_LIMIT: usize = 255;
+const DOMAIN_NAME_LENGTH_LIMIT: u8 = 255;
 // All pointers must have `11` as the first two bits
 const POINTER_PREFIX: u16 = 0xC000;
 
@@ -59,8 +59,8 @@ impl TryFrom<&str> for DomainName {
             return Err(e);
         }
 
-        let total_label_len: usize = domain_labels.iter().map(|label| label.len()).sum();
-        if total_label_len > DOMAIN_NAME_LENGTH_LIMIT {
+        let total_label_len: usize = domain_labels.iter().map(|label| label.len() as usize).sum();
+        if total_label_len > DOMAIN_NAME_LENGTH_LIMIT.into() {
             return Err(DomainNameValidationError::NameTooLong(
                 value.to_string(),
                 total_label_len,
@@ -106,12 +106,16 @@ impl BytesSerializable for DomainName {
 }
 
 impl CompressedBytesSerializable for DomainName {
-    fn to_bytes_compressed(&self, base_offset: u16, label_map: &mut LabelMap) -> Vec<u8> {
+    type ParseError = ();
+
+    fn to_bytes_compressed(&self, base_offset: u16, label_map: &mut LabelMap) -> (Vec<u8>, u16) {
         // Check if the entire domain name is in the hashmap
         let domain_labels_vec_deque = VecDeque::from(self.domain_labels.clone());
         if let Some(offset) = label_map.get(&domain_labels_vec_deque) {
             let pointer: u16 = POINTER_PREFIX | offset;
-            return pointer.to_be_bytes().to_vec();
+            // A pointer is 2 octets
+            let new_offset = base_offset + 2;
+            return (pointer.to_be_bytes().to_vec(), new_offset);
         } else {
             label_map.insert(domain_labels_vec_deque, base_offset);
         }
@@ -135,21 +139,24 @@ impl CompressedBytesSerializable for DomainName {
                     .flat_map(|label| label.to_bytes())
                     .chain(pointer.to_be_bytes())
                     .collect();
-                return label_bytes;
+                let new_offset = label_bytes.len() as u16 + base_offset;
+                return (label_bytes, new_offset);
             } else {
                 // Offset was not found, so cache the remaining labels into label_map
                 label_map.insert(labels.clone(), rolling_offset);
             }
         }
         // If loop was broken, no offset was used
-        popped_labels
+        let bytes = popped_labels
             .into_iter()
             .flat_map(|label| label.to_bytes())
             .chain([0])
-            .collect_vec()
+            .collect_vec();
+        let new_offset = (bytes.len() as u16) + base_offset;
+        (bytes, new_offset)
     }
 
-    fn parse_compressed(bytes: &[u8], base_offset: u16, label_map: &mut LabelMap) -> Self {
+    fn parse_compressed(bytes: &[u8], base_offset: u16, label_map: &mut LabelMap) -> (Result<Self, Self::ParseError>, u16) where Self: std::marker::Sized {
         todo!()
     }
 }
@@ -191,8 +198,9 @@ mod tests {
         .flatten()
         .collect();
 
-        let domain_bytes = domain_name.to_bytes_compressed(offset, &mut label_map);
+        let (domain_bytes, new_offset) = domain_name.to_bytes_compressed(offset, &mut label_map);
         assert_eq!(expected_bytes, domain_bytes);
+        assert_eq!(new_offset, offset + (expected_bytes.len() as u16));
 
         // Test with full domain present in the map
         let full_domain_labels = VecDeque::from(domain_name.domain_labels.clone());
@@ -201,8 +209,9 @@ mod tests {
         let expected_bytes = (POINTER_PREFIX | full_domain_offset)
             .to_be_bytes()
             .to_vec();
-        let domain_bytes = domain_name.to_bytes_compressed(full_domain_offset, &mut label_map);
+        let (domain_bytes, new_offset) = domain_name.to_bytes_compressed(full_domain_offset, &mut label_map);
         assert_eq!(expected_bytes, domain_bytes);
+        assert_eq!(new_offset, full_domain_offset + (expected_bytes.len() as u16));
 
         // Test with "live.com" in the label_map
         label_map.clear();
@@ -217,8 +226,9 @@ mod tests {
         .into_iter()
         .flatten()
         .collect();
-        let domain_bytes = domain_name.to_bytes_compressed(half_domain_offset, &mut label_map);
+        let (domain_bytes, new_offset) = domain_name.to_bytes_compressed(half_domain_offset, &mut label_map);
         assert_eq!(expected_bytes, domain_bytes);
+        assert_eq!(new_offset, half_domain_offset + (expected_bytes.len() as u16));
 
         // Test with "com" in the label_map
         label_map.clear();
@@ -230,10 +240,11 @@ mod tests {
             vec![4, 108, 105, 118, 101],
             (POINTER_PREFIX | com_offset).to_be_bytes().to_vec()
         ]
-        .into_iter()
-        .flatten()
-        .collect();
-        let domain_bytes = domain_name.to_bytes_compressed(com_offset, &mut label_map);
+            .into_iter()
+            .flatten()
+            .collect();
+        let (domain_bytes, new_offset) = domain_name.to_bytes_compressed(com_offset, &mut label_map);
         assert_eq!(expected_bytes, domain_bytes);
+        assert_eq!(new_offset, com_offset + (expected_bytes.len() as u16));
     }
 }

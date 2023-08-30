@@ -18,7 +18,7 @@ pub enum CharacterStringError {
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct CharacterString {
     /// The length of the character string
-    len: usize,
+    len: u8,
     /// The original ASCII representation of the character string
     char_str: AsciiString,
 }
@@ -36,14 +36,14 @@ impl TryFrom<AsciiString> for CharacterString {
             ));
         }
         Ok(Self {
-            len: value.len(),
+            len: len as u8,
             char_str: value,
         })
     }
 }
 
 impl CharacterString {
-    pub fn len(&self) -> usize {
+    pub fn len(&self) -> u8 {
         self.len
     }
 
