@@ -10,6 +10,7 @@ use crate::{
 /// can contain multiple question, all represented by individual `Question` instances.
 /// This means that a DNS message with 2 questions will contain 2 `Question` instances
 /// packed into bytes
+#[derive(Clone, Debug)]
 pub struct Question {
     qname: DomainName,
     qtype: Qtype,
@@ -235,5 +236,71 @@ mod tests {
         let (bytes, new_offset) = question.to_bytes_compressed(offset, &mut label_map);
         assert_eq!(bytes, expected_bytes);
         assert_eq!(new_offset, (expected_bytes.len() as u16) + offset);
+    }
+
+    #[test]
+    fn test_message_questions_to_bytes_compressed() {
+        let domain1 = DomainName::try_from("store.steampowered.com").unwrap();
+        let domain2 = DomainName::try_from("example.com").unwrap();
+        let domain3 = DomainName::try_from("twister.example.com").unwrap();
+        let domain4 = DomainName::try_from("twister.hello.com").unwrap();
+
+        let question1 = Question::new(domain1.clone(), Qtype::A, ResourceRecordQClass::In);
+        let question2 = Question::new(domain2.clone(), Qtype::A, ResourceRecordQClass::In);
+        let question3 = Question::new(domain3.clone(), Qtype::A, ResourceRecordQClass::In);
+        let question4 = Question::new(domain4.clone(), Qtype::A, ResourceRecordQClass::In);
+
+        let questions = MessageQuestions::new(vec![question1, question2.clone()]);
+        let mut label_map: LabelMap = HashMap::new();
+        let offset = 0;
+
+        let expected_bytes = [
+            DomainLabel::try_from("store").unwrap().to_bytes(),
+            DomainLabel::try_from("steampowered").unwrap().to_bytes(),
+            // Offset at this point should be 19
+            DomainLabel::try_from("com").unwrap().to_bytes(),
+            vec![0],
+            (Qtype::A as u16).to_be_bytes().to_vec(),
+            (ResourceRecordQClass::In as u16).to_be_bytes().to_vec(),
+            DomainLabel::try_from("example").unwrap().to_bytes(),
+            (POINTER_PREFIX | 19).to_be_bytes().to_vec(),
+            (Qtype::A as u16).to_be_bytes().to_vec(),
+            (ResourceRecordQClass::In as u16).to_be_bytes().to_vec(),
+        ]
+        .into_iter()
+        .flatten()
+        .collect_vec();
+
+        let (bytes, new_offset) = questions.to_bytes_compressed(offset, &mut label_map);
+        assert_eq!(expected_bytes, bytes);
+        assert_eq!(new_offset, 42);
+
+        let questions = MessageQuestions::new(vec![question2, question3, question4]);
+        let offset = 10;
+        label_map.clear();
+        let expected_bytes = [
+            DomainLabel::try_from("example").unwrap().to_bytes(),
+            // Offset at this point should be 8
+            DomainLabel::try_from("com").unwrap().to_bytes(),
+            vec![0],
+            (Qtype::A as u16).to_be_bytes().to_vec(),
+            (ResourceRecordQClass::In as u16).to_be_bytes().to_vec(),
+            DomainLabel::try_from("twister").unwrap().to_bytes(),
+            (POINTER_PREFIX | offset).to_be_bytes().to_vec(),
+            (Qtype::A as u16).to_be_bytes().to_vec(),
+            (ResourceRecordQClass::In as u16).to_be_bytes().to_vec(),
+            DomainLabel::try_from("twister").unwrap().to_bytes(),
+            DomainLabel::try_from("hello").unwrap().to_bytes(),
+            (POINTER_PREFIX | (offset + 8)).to_be_bytes().to_vec(),
+            (Qtype::A as u16).to_be_bytes().to_vec(),
+            (ResourceRecordQClass::In as u16).to_be_bytes().to_vec(),
+        ]
+        .into_iter()
+        .flatten()
+        .collect_vec();
+
+        let (bytes, new_offset) = questions.to_bytes_compressed(offset, &mut label_map);
+        assert_eq!(expected_bytes, bytes);
+        assert_eq!(new_offset, 61);
     }
 }
