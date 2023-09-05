@@ -62,14 +62,14 @@ impl CharacterString {
 
 impl BytesSerializable for CharacterString {
     type ParseError = ();
-    
+
     fn to_bytes(&self) -> Vec<u8> {
-        let mut bytes_repr: Vec<u8> = vec![self.len as u8];
+        let mut bytes_repr: Vec<u8> = vec![self.len];
         bytes_repr.extend(self.char_str.as_bytes());
         bytes_repr
     }
 
-    fn parse(bytes: &[u8]) -> Result<Self, Self::ParseError> {
+    fn parse(_bytes: &[u8]) -> Result<Self, Self::ParseError> {
         todo!()
     }
 }
@@ -89,7 +89,7 @@ impl DomainPointer {
 
 impl BytesSerializable for DomainPointer {
     type ParseError = ();
-    
+
     fn to_bytes(&self) -> Vec<u8> {
         // Based on the spec, a domain pointer will start with two `1` bits
         let offset_indicator: u16 = 0xC000;
@@ -100,7 +100,7 @@ impl BytesSerializable for DomainPointer {
         data.to_be_bytes().to_vec()
     }
 
-    fn parse(bytes: &[u8]) -> Result<Self, Self::ParseError> {
+    fn parse(_bytes: &[u8]) -> Result<Self, Self::ParseError> {
         todo!()
     }
 }

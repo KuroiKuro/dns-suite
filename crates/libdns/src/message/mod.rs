@@ -16,7 +16,7 @@ impl TryFrom<u8> for MessageType {
         match value {
             0 => Ok(MessageType::Question),
             1 => Ok(MessageType::Answer),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }
@@ -44,7 +44,7 @@ impl TryFrom<u8> for QueryOpcode {
             1 => Ok(Self::Iquery),
             2 => Ok(Self::Status),
             3..=15 => Ok(Self::Reserved),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }
@@ -87,7 +87,7 @@ impl TryFrom<u8> for ResponseCode {
             4 => Ok(Self::NotImplemented),
             5 => Ok(Self::Refused),
             6..=15 => Ok(Self::Reserved),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }

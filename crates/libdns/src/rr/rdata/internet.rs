@@ -13,12 +13,12 @@ pub struct ARdata {
 
 impl BytesSerializable for ARdata {
     type ParseError = ();
-    
+
     fn to_bytes(&self) -> Vec<u8> {
         Vec::from(self.address.octets())
     }
 
-    fn parse(bytes: &[u8]) -> Result<Self, Self::ParseError> {
-        todo!()    
+    fn parse(_bytes: &[u8]) -> Result<Self, Self::ParseError> {
+        todo!()
     }
 }

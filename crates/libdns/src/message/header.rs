@@ -1,8 +1,11 @@
-use crate::{parse_utils::{byte_parser, bit_parser}, BytesSerializable};
+use crate::{
+    parse_utils::{bit_parser, byte_parser},
+    BytesSerializable,
+};
 
 use super::{MessageType, QueryOpcode, ResponseCode};
 use itertools::Itertools;
-use nom::{IResult, number};
+use nom::{number, IResult};
 use rand::random;
 use thiserror::Error;
 
@@ -137,7 +140,6 @@ impl Header {
     }
 
     // Parsing functions
-    
 
     /// General function for parsing `ID, `QDCOUNT`, `ANCOUNT`, `NSCOUNT` and `ARCOUNT`,
     /// which are all `u16s` and do not have special parsing requirements
@@ -180,7 +182,7 @@ impl Header {
 
 impl BytesSerializable for Header {
     type ParseError = ParseHeaderError;
-    
+
     fn to_bytes(&self) -> Vec<u8> {
         [
             self.id,
@@ -198,41 +200,50 @@ impl BytesSerializable for Header {
     fn parse(bytes: &[u8]) -> Result<Self, Self::ParseError> {
         let (bytes, id) = Self::parse_u16(bytes).map_err(|_| ParseHeaderError::IdError)?;
 
-        let (bytes_with_offset, qr) = Self::parse_qr((bytes, 0)).map_err(|_| ParseHeaderError::QrError)?;
+        let (bytes_with_offset, qr) =
+            Self::parse_qr((bytes, 0)).map_err(|_| ParseHeaderError::QrError)?;
         let qr = MessageType::try_from(qr).map_err(|_| ParseHeaderError::QrError)?;
 
-        let (bytes_with_offset, opcode) = Self::parse_opcode(bytes_with_offset).map_err(|_| ParseHeaderError::OpcodeError)?;
+        let (bytes_with_offset, opcode) =
+            Self::parse_opcode(bytes_with_offset).map_err(|_| ParseHeaderError::OpcodeError)?;
         let opcode = QueryOpcode::try_from(opcode).map_err(|_| ParseHeaderError::OpcodeError)?;
 
-        let (bytes_with_offset, aa) = Self::parse_bool_bit(bytes_with_offset).map_err(|_| ParseHeaderError::AaError)?;
-        let (bytes_with_offset, tc) = Self::parse_bool_bit(bytes_with_offset).map_err(|_| ParseHeaderError::TcError)?;
-        let (bytes_with_offset, rd) = Self::parse_bool_bit(bytes_with_offset).map_err(|_| ParseHeaderError::RdError)?;
-        let (bytes_with_offset, ra) = Self::parse_bool_bit(bytes_with_offset).map_err(|_| ParseHeaderError::RaError)?;
+        let (bytes_with_offset, aa) =
+            Self::parse_bool_bit(bytes_with_offset).map_err(|_| ParseHeaderError::AaError)?;
+        let (bytes_with_offset, tc) =
+            Self::parse_bool_bit(bytes_with_offset).map_err(|_| ParseHeaderError::TcError)?;
+        let (bytes_with_offset, rd) =
+            Self::parse_bool_bit(bytes_with_offset).map_err(|_| ParseHeaderError::RdError)?;
+        let (bytes_with_offset, ra) =
+            Self::parse_bool_bit(bytes_with_offset).map_err(|_| ParseHeaderError::RaError)?;
 
         // The offset shouldn't be used anymore on the last bit parsing action
-        let ((bytes, _), rcode) = Self::parse_rcode(bytes_with_offset).map_err(|_| ParseHeaderError::RcodeError)?;
+        let ((bytes, _), rcode) =
+            Self::parse_rcode(bytes_with_offset).map_err(|_| ParseHeaderError::RcodeError)?;
         let rcode = ResponseCode::try_from(rcode).map_err(|_| ParseHeaderError::RcodeError)?;
 
-        let (bytes, qdcount) = Self::parse_u16(bytes).map_err(|_| ParseHeaderError::QdcountError)?;
-        let (bytes, ancount) = Self::parse_u16(bytes).map_err(|_| ParseHeaderError::AncountError)?;
-        let (bytes, nscount) = Self::parse_u16(bytes).map_err(|_| ParseHeaderError::NscountError)?;
-        let (_bytes, arcount) = Self::parse_u16(bytes).map_err(|_| ParseHeaderError::ArcountError)?;
-        Ok(
-            Self {
-                id,
-                qr,
-                opcode,
-                authoritative_ans: aa, 
-                truncation: tc, 
-                recursion_desired: rd,
-                recursion_available: ra,
-                response_code: rcode,
-                qdcount,
-                ancount,
-                nscount,
-                arcount,
-            }
-        )
+        let (bytes, qdcount) =
+            Self::parse_u16(bytes).map_err(|_| ParseHeaderError::QdcountError)?;
+        let (bytes, ancount) =
+            Self::parse_u16(bytes).map_err(|_| ParseHeaderError::AncountError)?;
+        let (bytes, nscount) =
+            Self::parse_u16(bytes).map_err(|_| ParseHeaderError::NscountError)?;
+        let (_bytes, arcount) =
+            Self::parse_u16(bytes).map_err(|_| ParseHeaderError::ArcountError)?;
+        Ok(Self {
+            id,
+            qr,
+            opcode,
+            authoritative_ans: aa,
+            truncation: tc,
+            recursion_desired: rd,
+            recursion_available: ra,
+            response_code: rcode,
+            qdcount,
+            ancount,
+            nscount,
+            arcount,
+        })
     }
 }
 

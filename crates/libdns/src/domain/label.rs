@@ -1,7 +1,7 @@
 // use idna::punycode;
 
-use std::{cmp::PartialEq, hash::Hash};
 use std::str::FromStr;
+use std::{cmp::PartialEq, hash::Hash};
 
 use ascii::{AsciiChar, AsciiStr, AsciiString};
 use itertools::{Itertools, Position};
@@ -142,7 +142,6 @@ impl DomainLabel {
     }
 }
 
-
 impl BytesSerializable for DomainLabel {
     type ParseError = ();
     /// Returns the bytes representing the domain label. Following the spec, the
@@ -152,7 +151,10 @@ impl BytesSerializable for DomainLabel {
         self.data.to_bytes()
     }
 
-    fn parse(bytes: &[u8]) -> Result<Self, Self::ParseError> where Self: std::marker::Sized {
+    fn parse(_bytes: &[u8]) -> Result<Self, Self::ParseError>
+    where
+        Self: std::marker::Sized,
+    {
         todo!()
     }
 }

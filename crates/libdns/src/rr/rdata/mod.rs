@@ -6,7 +6,6 @@ use crate::{domain::DomainName, types::CharacterString, BytesSerializable};
 
 pub mod internet;
 
-
 /// A type representing the data of a `CNAME` resource type.
 /// A <domain-name> which specifies the canonical or primary name for the owner.
 /// The owner name is an alias.
@@ -21,7 +20,7 @@ impl BytesSerializable for CnameBytes {
         self.cname.to_bytes()
     }
 
-    fn parse(bytes: &[u8]) -> Result<Self, Self::ParseError> {
+    fn parse(_bytes: &[u8]) -> Result<Self, Self::ParseError> {
         todo!()
     }
 }
@@ -32,12 +31,12 @@ pub struct NsdnameBytes {
 
 impl BytesSerializable for NsdnameBytes {
     type ParseError = ();
-    
+
     fn to_bytes(&self) -> Vec<u8> {
         self.nsdname.to_bytes()
     }
 
-    fn parse(bytes: &[u8]) -> Result<Self, Self::ParseError> {
+    fn parse(_bytes: &[u8]) -> Result<Self, Self::ParseError> {
         todo!()
     }
 }
@@ -48,12 +47,12 @@ pub struct PtrBytes {
 
 impl BytesSerializable for PtrBytes {
     type ParseError = ();
-    
+
     fn to_bytes(&self) -> Vec<u8> {
         self.ptrdname.to_bytes()
     }
 
-    fn parse(bytes: &[u8]) -> Result<Self, Self::ParseError> {
+    fn parse(_bytes: &[u8]) -> Result<Self, Self::ParseError> {
         todo!()
     }
 }
@@ -87,7 +86,7 @@ pub struct SoaBytes {
 
 impl BytesSerializable for SoaBytes {
     type ParseError = ();
-    
+
     fn to_bytes(&self) -> Vec<u8> {
         [&self.mname, &self.rname]
             .iter()
@@ -107,7 +106,7 @@ impl BytesSerializable for SoaBytes {
             .collect_vec()
     }
 
-    fn parse(bytes: &[u8]) -> Result<Self, Self::ParseError> {
+    fn parse(_bytes: &[u8]) -> Result<Self, Self::ParseError> {
         todo!()
     }
 }
@@ -120,7 +119,7 @@ pub struct TxtBytes {
 
 impl BytesSerializable for TxtBytes {
     type ParseError = ();
-    
+
     fn to_bytes(&self) -> Vec<u8> {
         self.txt_data
             .iter()
@@ -128,7 +127,7 @@ impl BytesSerializable for TxtBytes {
             .collect_vec()
     }
 
-    fn parse(bytes: &[u8]) -> Result<Self, Self::ParseError> {
+    fn parse(_bytes: &[u8]) -> Result<Self, Self::ParseError> {
         todo!()
     }
 }
