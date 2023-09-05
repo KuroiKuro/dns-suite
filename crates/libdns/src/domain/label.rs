@@ -7,8 +7,8 @@ use ascii::{AsciiChar, AsciiStr, AsciiString};
 use itertools::{Itertools, Position};
 use thiserror::Error;
 
-use crate::ParseDataError;
 use crate::parse_utils::byte_parser;
+use crate::ParseDataError;
 use crate::{types::CharacterString, BytesSerializable};
 
 const MAX_LABEL_LENGTH: usize = 63;
@@ -158,11 +158,16 @@ impl BytesSerializable for DomainLabel {
     where
         Self: std::marker::Sized,
     {
-        let (remaining_input, parsed) = byte_parser(bytes, 1).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (remaining_input, parsed) =
+            byte_parser(bytes, 1).map_err(|_| ParseDataError::InvalidByteStructure)?;
         let count_to_take = parsed[0];
-        let (remaining_input, parsed) = byte_parser(remaining_input, count_to_take as usize).map_err(|_| ParseDataError::InvalidByteStructure)?;
-        let ascii_str = AsciiStr::from_ascii(parsed).map_err(|_| ParseDataError::InvalidByteStructure)?.to_owned();
-        let data = CharacterString::try_from(ascii_str).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (remaining_input, parsed) = byte_parser(remaining_input, count_to_take as usize)
+            .map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let ascii_str = AsciiStr::from_ascii(parsed)
+            .map_err(|_| ParseDataError::InvalidByteStructure)?
+            .to_owned();
+        let data = CharacterString::try_from(ascii_str)
+            .map_err(|_| ParseDataError::InvalidByteStructure)?;
         Ok((Self { data }, remaining_input))
     }
 }

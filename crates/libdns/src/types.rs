@@ -1,7 +1,7 @@
 use ascii::AsciiString;
 use thiserror::Error;
 
-use crate::{BytesSerializable, parse_utils::byte_parser, ParseDataError};
+use crate::{parse_utils::byte_parser, BytesSerializable, ParseDataError};
 
 pub const MAX_CHARACTER_STRING_LEN: usize = 256;
 
@@ -70,11 +70,20 @@ impl BytesSerializable for CharacterString {
     }
 
     fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
-        let (remaining_input, parsed) = byte_parser(bytes, 1).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (remaining_input, parsed) =
+            byte_parser(bytes, 1).map_err(|_| ParseDataError::InvalidByteStructure)?;
         let len = parsed[0];
-        let (remaining_input, parsed) = byte_parser(remaining_input, len as usize).map_err(|_| ParseDataError::InvalidByteStructure)?;
-        let char_str = AsciiString::from_ascii(parsed).map_err(|_| ParseDataError::InvalidByteStructure)?;
-        Ok((Self { len: char_str.len() as u8, char_str }, remaining_input))
+        let (remaining_input, parsed) = byte_parser(remaining_input, len as usize)
+            .map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let char_str =
+            AsciiString::from_ascii(parsed).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        Ok((
+            Self {
+                len: char_str.len() as u8,
+                char_str,
+            },
+            remaining_input,
+        ))
     }
 }
 

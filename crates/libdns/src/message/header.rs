@@ -196,29 +196,32 @@ impl BytesSerializable for Header {
     }
 
     fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
-        let (bytes, id) = Self::parse_u16(bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (bytes, id) =
+            Self::parse_u16(bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
 
         let (bytes_with_offset, qr) =
             Self::parse_qr((bytes, 0)).map_err(|_| ParseDataError::InvalidByteStructure)?;
         let qr = MessageType::try_from(qr).map_err(|_| ParseDataError::InvalidByteStructure)?;
 
-        let (bytes_with_offset, opcode) =
-            Self::parse_opcode(bytes_with_offset).map_err(|_| ParseDataError::InvalidByteStructure)?;
-        let opcode = QueryOpcode::try_from(opcode).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (bytes_with_offset, opcode) = Self::parse_opcode(bytes_with_offset)
+            .map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let opcode =
+            QueryOpcode::try_from(opcode).map_err(|_| ParseDataError::InvalidByteStructure)?;
 
-        let (bytes_with_offset, aa) =
-            Self::parse_bool_bit(bytes_with_offset).map_err(|_| ParseDataError::InvalidByteStructure)?;
-        let (bytes_with_offset, tc) =
-            Self::parse_bool_bit(bytes_with_offset).map_err(|_| ParseDataError::InvalidByteStructure)?;
-        let (bytes_with_offset, rd) =
-            Self::parse_bool_bit(bytes_with_offset).map_err(|_| ParseDataError::InvalidByteStructure)?;
-        let (bytes_with_offset, ra) =
-            Self::parse_bool_bit(bytes_with_offset).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (bytes_with_offset, aa) = Self::parse_bool_bit(bytes_with_offset)
+            .map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (bytes_with_offset, tc) = Self::parse_bool_bit(bytes_with_offset)
+            .map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (bytes_with_offset, rd) = Self::parse_bool_bit(bytes_with_offset)
+            .map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (bytes_with_offset, ra) = Self::parse_bool_bit(bytes_with_offset)
+            .map_err(|_| ParseDataError::InvalidByteStructure)?;
 
         // The offset shouldn't be used anymore on the last bit parsing action
-        let ((bytes, _), rcode) =
-            Self::parse_rcode(bytes_with_offset).map_err(|_| ParseDataError::InvalidByteStructure)?;
-        let rcode = ResponseCode::try_from(rcode).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let ((bytes, _), rcode) = Self::parse_rcode(bytes_with_offset)
+            .map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let rcode =
+            ResponseCode::try_from(rcode).map_err(|_| ParseDataError::InvalidByteStructure)?;
 
         let (bytes, qdcount) =
             Self::parse_u16(bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
@@ -228,20 +231,23 @@ impl BytesSerializable for Header {
             Self::parse_u16(bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
         let (bytes, arcount) =
             Self::parse_u16(bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
-        Ok((Self {
-            id,
-            qr,
-            opcode,
-            authoritative_ans: aa,
-            truncation: tc,
-            recursion_desired: rd,
-            recursion_available: ra,
-            response_code: rcode,
-            qdcount,
-            ancount,
-            nscount,
-            arcount,
-        }, bytes))
+        Ok((
+            Self {
+                id,
+                qr,
+                opcode,
+                authoritative_ans: aa,
+                truncation: tc,
+                recursion_desired: rd,
+                recursion_available: ra,
+                response_code: rcode,
+                qdcount,
+                ancount,
+                nscount,
+                arcount,
+            },
+            bytes,
+        ))
     }
 }
 
