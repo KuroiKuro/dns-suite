@@ -2,7 +2,7 @@ use std::num::Wrapping;
 
 use itertools::Itertools;
 
-use crate::{domain::DomainName, types::CharacterString, BytesSerializable};
+use crate::{domain::DomainName, types::CharacterString, BytesSerializable, ParseDataError};
 
 pub mod internet;
 
@@ -14,13 +14,11 @@ pub struct CnameBytes {
 }
 
 impl BytesSerializable for CnameBytes {
-    type ParseError = ();
-
     fn to_bytes(&self) -> Vec<u8> {
         self.cname.to_bytes()
     }
 
-    fn parse(_bytes: &[u8]) -> Result<Self, Self::ParseError> {
+    fn parse(_bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
         todo!()
     }
 }
@@ -30,13 +28,11 @@ pub struct NsdnameBytes {
 }
 
 impl BytesSerializable for NsdnameBytes {
-    type ParseError = ();
-
     fn to_bytes(&self) -> Vec<u8> {
         self.nsdname.to_bytes()
     }
 
-    fn parse(_bytes: &[u8]) -> Result<Self, Self::ParseError> {
+    fn parse(_bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
         todo!()
     }
 }
@@ -46,13 +42,11 @@ pub struct PtrBytes {
 }
 
 impl BytesSerializable for PtrBytes {
-    type ParseError = ();
-
     fn to_bytes(&self) -> Vec<u8> {
         self.ptrdname.to_bytes()
     }
 
-    fn parse(_bytes: &[u8]) -> Result<Self, Self::ParseError> {
+    fn parse(_bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
         todo!()
     }
 }
@@ -85,8 +79,6 @@ pub struct SoaBytes {
 }
 
 impl BytesSerializable for SoaBytes {
-    type ParseError = ();
-
     fn to_bytes(&self) -> Vec<u8> {
         [&self.mname, &self.rname]
             .iter()
@@ -106,7 +98,7 @@ impl BytesSerializable for SoaBytes {
             .collect_vec()
     }
 
-    fn parse(_bytes: &[u8]) -> Result<Self, Self::ParseError> {
+    fn parse(_bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
         todo!()
     }
 }
@@ -118,8 +110,6 @@ pub struct TxtBytes {
 }
 
 impl BytesSerializable for TxtBytes {
-    type ParseError = ();
-
     fn to_bytes(&self) -> Vec<u8> {
         self.txt_data
             .iter()
@@ -127,7 +117,7 @@ impl BytesSerializable for TxtBytes {
             .collect_vec()
     }
 
-    fn parse(_bytes: &[u8]) -> Result<Self, Self::ParseError> {
+    fn parse(_bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
         todo!()
     }
 }

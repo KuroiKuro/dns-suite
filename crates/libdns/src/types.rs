@@ -1,7 +1,7 @@
 use ascii::AsciiString;
 use thiserror::Error;
 
-use crate::BytesSerializable;
+use crate::{BytesSerializable, parse_utils::byte_parser, ParseDataError};
 
 pub const MAX_CHARACTER_STRING_LEN: usize = 256;
 
@@ -9,6 +9,8 @@ pub const MAX_CHARACTER_STRING_LEN: usize = 256;
 pub enum CharacterStringError {
     #[error("String '{0}' is too long for character string")]
     TooLong(AsciiString, usize),
+    #[error("Invalid byte structure")]
+    InvalidByteStructure,
 }
 
 /// A struct representing a `<character-string>`, defined in section 3.3 of RDC 1035.
@@ -61,16 +63,18 @@ impl CharacterString {
 }
 
 impl BytesSerializable for CharacterString {
-    type ParseError = ();
-
     fn to_bytes(&self) -> Vec<u8> {
         let mut bytes_repr: Vec<u8> = vec![self.len];
         bytes_repr.extend(self.char_str.as_bytes());
         bytes_repr
     }
 
-    fn parse(_bytes: &[u8]) -> Result<Self, Self::ParseError> {
-        todo!()
+    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
+        let (remaining_input, parsed) = byte_parser(bytes, 1).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let len = parsed[0];
+        let (remaining_input, parsed) = byte_parser(remaining_input, len as usize).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let char_str = AsciiString::from_ascii(parsed).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        Ok((Self { len: char_str.len() as u8, char_str }, remaining_input))
     }
 }
 
@@ -88,8 +92,6 @@ impl DomainPointer {
 }
 
 impl BytesSerializable for DomainPointer {
-    type ParseError = ();
-
     fn to_bytes(&self) -> Vec<u8> {
         // Based on the spec, a domain pointer will start with two `1` bits
         let offset_indicator: u16 = 0xC000;
@@ -100,7 +102,7 @@ impl BytesSerializable for DomainPointer {
         data.to_be_bytes().to_vec()
     }
 
-    fn parse(_bytes: &[u8]) -> Result<Self, Self::ParseError> {
+    fn parse(_bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
         todo!()
     }
 }

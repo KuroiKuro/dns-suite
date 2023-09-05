@@ -3,7 +3,7 @@ use itertools::Itertools;
 use crate::{
     domain::DomainName,
     rr::{Qtype, ResourceRecordQClass},
-    BytesSerializable, CompressedBytesSerializable,
+    BytesSerializable, CompressedBytesSerializable, ParseDataError,
 };
 
 /// A struct depicting a question in a DNS message. The question section in the messsage
@@ -40,8 +40,6 @@ impl Question {
 }
 
 impl BytesSerializable for Question {
-    type ParseError = ();
-
     fn to_bytes(&self) -> Vec<u8> {
         let qname = self.qname.to_bytes();
         let qtype = (self.qtype as u16).to_be_bytes().to_vec();
@@ -49,7 +47,7 @@ impl BytesSerializable for Question {
         [qname, qtype, qclass].into_iter().flatten().collect_vec()
     }
 
-    fn parse(_bytes: &[u8]) -> Result<Self, Self::ParseError>
+    fn parse(_bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError>
     where
         Self: std::marker::Sized,
     {
@@ -58,8 +56,6 @@ impl BytesSerializable for Question {
 }
 
 impl CompressedBytesSerializable for Question {
-    type ParseError = ();
-
     fn to_bytes_compressed(
         &self,
         base_offset: u16,
@@ -78,11 +74,11 @@ impl CompressedBytesSerializable for Question {
         (bytes, new_offset)
     }
 
-    fn parse_compressed(
-        _bytes: &[u8],
+    fn parse_compressed<'a>(
+        _bytes: &'a [u8],
         _base_offset: u16,
         _label_map: &mut crate::LabelMap,
-    ) -> (Result<Self, Self::ParseError>, u16)
+    ) -> (Result<(Self, &'a [u8]), ParseDataError>, u16)
     where
         Self: std::marker::Sized,
     {
@@ -101,8 +97,6 @@ impl MessageQuestions {
 }
 
 impl BytesSerializable for MessageQuestions {
-    type ParseError = ();
-
     fn to_bytes(&self) -> Vec<u8> {
         self.questions
             .iter()
@@ -110,7 +104,7 @@ impl BytesSerializable for MessageQuestions {
             .collect_vec()
     }
 
-    fn parse(_bytes: &[u8]) -> Result<Self, Self::ParseError>
+    fn parse(_bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError>
     where
         Self: std::marker::Sized,
     {
@@ -119,8 +113,6 @@ impl BytesSerializable for MessageQuestions {
 }
 
 impl CompressedBytesSerializable for MessageQuestions {
-    type ParseError = ();
-
     fn to_bytes_compressed(
         &self,
         base_offset: u16,
@@ -139,11 +131,11 @@ impl CompressedBytesSerializable for MessageQuestions {
         (question_bytes, rolling_offset)
     }
 
-    fn parse_compressed(
-        _bytes: &[u8],
+    fn parse_compressed<'a>(
+        _bytes: &'a [u8],
         _base_offset: u16,
         _label_map: &mut crate::LabelMap,
-    ) -> (Result<Self, Self::ParseError>, u16)
+    ) -> (Result<(Self, &'a [u8]), ParseDataError>, u16)
     where
         Self: std::marker::Sized,
     {

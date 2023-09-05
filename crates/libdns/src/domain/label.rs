@@ -7,6 +7,8 @@ use ascii::{AsciiChar, AsciiStr, AsciiString};
 use itertools::{Itertools, Position};
 use thiserror::Error;
 
+use crate::ParseDataError;
+use crate::parse_utils::byte_parser;
 use crate::{types::CharacterString, BytesSerializable};
 
 const MAX_LABEL_LENGTH: usize = 63;
@@ -28,6 +30,8 @@ pub enum DomainLabelValidationError {
     InvalidChar(String, AsciiChar),
     #[error("Unable to parse ASCII characters from domain label '{0}'")]
     InvalidAscii(String),
+    #[error("Invalid byte structure")]
+    InvalidByteStructure,
 }
 
 /// Represents a label within a domain name. According to RFC 1035 Section 3.1,
@@ -143,7 +147,6 @@ impl DomainLabel {
 }
 
 impl BytesSerializable for DomainLabel {
-    type ParseError = ();
     /// Returns the bytes representing the domain label. Following the spec, the
     /// first element of the slice will be the length of the label, followed by the
     /// bytes of the label itself
@@ -151,11 +154,16 @@ impl BytesSerializable for DomainLabel {
         self.data.to_bytes()
     }
 
-    fn parse(_bytes: &[u8]) -> Result<Self, Self::ParseError>
+    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError>
     where
         Self: std::marker::Sized,
     {
-        todo!()
+        let (remaining_input, parsed) = byte_parser(bytes, 1).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let count_to_take = parsed[0];
+        let (remaining_input, parsed) = byte_parser(remaining_input, count_to_take as usize).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let ascii_str = AsciiStr::from_ascii(parsed).map_err(|_| ParseDataError::InvalidByteStructure)?.to_owned();
+        let data = CharacterString::try_from(ascii_str).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        Ok((Self { data }, remaining_input))
     }
 }
 

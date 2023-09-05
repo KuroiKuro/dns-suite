@@ -1,6 +1,6 @@
 use crate::{
     parse_utils::{bit_parser, byte_parser},
-    BytesSerializable,
+    BytesSerializable, ParseDataError,
 };
 
 use super::{MessageType, QueryOpcode, ResponseCode};
@@ -181,8 +181,6 @@ impl Header {
 }
 
 impl BytesSerializable for Header {
-    type ParseError = ParseHeaderError;
-
     fn to_bytes(&self) -> Vec<u8> {
         [
             self.id,
@@ -197,40 +195,40 @@ impl BytesSerializable for Header {
         .collect_vec()
     }
 
-    fn parse(bytes: &[u8]) -> Result<Self, Self::ParseError> {
-        let (bytes, id) = Self::parse_u16(bytes).map_err(|_| ParseHeaderError::IdError)?;
+    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
+        let (bytes, id) = Self::parse_u16(bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
 
         let (bytes_with_offset, qr) =
-            Self::parse_qr((bytes, 0)).map_err(|_| ParseHeaderError::QrError)?;
-        let qr = MessageType::try_from(qr).map_err(|_| ParseHeaderError::QrError)?;
+            Self::parse_qr((bytes, 0)).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let qr = MessageType::try_from(qr).map_err(|_| ParseDataError::InvalidByteStructure)?;
 
         let (bytes_with_offset, opcode) =
-            Self::parse_opcode(bytes_with_offset).map_err(|_| ParseHeaderError::OpcodeError)?;
-        let opcode = QueryOpcode::try_from(opcode).map_err(|_| ParseHeaderError::OpcodeError)?;
+            Self::parse_opcode(bytes_with_offset).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let opcode = QueryOpcode::try_from(opcode).map_err(|_| ParseDataError::InvalidByteStructure)?;
 
         let (bytes_with_offset, aa) =
-            Self::parse_bool_bit(bytes_with_offset).map_err(|_| ParseHeaderError::AaError)?;
+            Self::parse_bool_bit(bytes_with_offset).map_err(|_| ParseDataError::InvalidByteStructure)?;
         let (bytes_with_offset, tc) =
-            Self::parse_bool_bit(bytes_with_offset).map_err(|_| ParseHeaderError::TcError)?;
+            Self::parse_bool_bit(bytes_with_offset).map_err(|_| ParseDataError::InvalidByteStructure)?;
         let (bytes_with_offset, rd) =
-            Self::parse_bool_bit(bytes_with_offset).map_err(|_| ParseHeaderError::RdError)?;
+            Self::parse_bool_bit(bytes_with_offset).map_err(|_| ParseDataError::InvalidByteStructure)?;
         let (bytes_with_offset, ra) =
-            Self::parse_bool_bit(bytes_with_offset).map_err(|_| ParseHeaderError::RaError)?;
+            Self::parse_bool_bit(bytes_with_offset).map_err(|_| ParseDataError::InvalidByteStructure)?;
 
         // The offset shouldn't be used anymore on the last bit parsing action
         let ((bytes, _), rcode) =
-            Self::parse_rcode(bytes_with_offset).map_err(|_| ParseHeaderError::RcodeError)?;
-        let rcode = ResponseCode::try_from(rcode).map_err(|_| ParseHeaderError::RcodeError)?;
+            Self::parse_rcode(bytes_with_offset).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let rcode = ResponseCode::try_from(rcode).map_err(|_| ParseDataError::InvalidByteStructure)?;
 
         let (bytes, qdcount) =
-            Self::parse_u16(bytes).map_err(|_| ParseHeaderError::QdcountError)?;
+            Self::parse_u16(bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
         let (bytes, ancount) =
-            Self::parse_u16(bytes).map_err(|_| ParseHeaderError::AncountError)?;
+            Self::parse_u16(bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
         let (bytes, nscount) =
-            Self::parse_u16(bytes).map_err(|_| ParseHeaderError::NscountError)?;
-        let (_bytes, arcount) =
-            Self::parse_u16(bytes).map_err(|_| ParseHeaderError::ArcountError)?;
-        Ok(Self {
+            Self::parse_u16(bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (bytes, arcount) =
+            Self::parse_u16(bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        Ok((Self {
             id,
             qr,
             opcode,
@@ -243,7 +241,7 @@ impl BytesSerializable for Header {
             ancount,
             nscount,
             arcount,
-        })
+        }, bytes))
     }
 }
 
@@ -556,7 +554,7 @@ mod tests {
             0,
             0,
         ];
-        let header = Header::parse(&header_bytes).unwrap();
+        let (header, _) = Header::parse(&header_bytes).unwrap();
         assert_eq!(header.id, 0x90CB);
         assert_eq!(header.qr, MessageType::Question);
         assert_eq!(header.opcode, QueryOpcode::Query);
@@ -591,7 +589,7 @@ mod tests {
             0,
             0,
         ];
-        let header = Header::parse(&header_bytes).unwrap();
+        let (header, _) = Header::parse(&header_bytes).unwrap();
         assert_eq!(header.id, 0x2BA2);
         assert_eq!(header.qr, MessageType::Answer);
         assert_eq!(header.opcode, QueryOpcode::Query);

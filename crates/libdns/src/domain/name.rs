@@ -4,7 +4,7 @@ use ascii::{AsciiChar, AsciiString};
 use itertools::Itertools;
 use thiserror::Error;
 
-use crate::{BytesSerializable, CompressedBytesSerializable, LabelMap};
+use crate::{BytesSerializable, CompressedBytesSerializable, LabelMap, ParseDataError};
 
 use super::{DomainLabel, DomainLabelValidationError};
 
@@ -89,8 +89,6 @@ impl PartialEq for DomainName {
 impl DomainName {}
 
 impl BytesSerializable for DomainName {
-    type ParseError = ();
-
     fn to_bytes(&self) -> Vec<u8> {
         self.domain_labels
             .iter()
@@ -99,14 +97,12 @@ impl BytesSerializable for DomainName {
             .collect_vec()
     }
 
-    fn parse(_bytes: &[u8]) -> Result<Self, Self::ParseError> {
+    fn parse(_bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
         todo!()
     }
 }
 
 impl CompressedBytesSerializable for DomainName {
-    type ParseError = ();
-
     fn to_bytes_compressed(&self, base_offset: u16, label_map: &mut LabelMap) -> (Vec<u8>, u16) {
         // Check if the entire domain name is in the hashmap
         let domain_labels_vec_deque = VecDeque::from(self.domain_labels.clone());
@@ -155,14 +151,15 @@ impl CompressedBytesSerializable for DomainName {
         (bytes, new_offset)
     }
 
-    fn parse_compressed(
-        _bytes: &[u8],
+    fn parse_compressed<'a>(
+        _bytes: &'a [u8],
         _base_offset: u16,
         _label_map: &mut LabelMap,
-    ) -> (Result<Self, Self::ParseError>, u16)
+    ) -> (Result<(Self, &'a [u8]), ParseDataError>, u16)
     where
         Self: std::marker::Sized,
     {
+        // Take the first byte first, which should contain the len of the label
         todo!()
     }
 }

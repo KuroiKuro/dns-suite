@@ -1,6 +1,6 @@
 use std::net::Ipv4Addr;
 
-use crate::BytesSerializable;
+use crate::{BytesSerializable, ParseDataError};
 
 /// Hosts that have multiple Internet addresses will have multiple A records.
 /// A records cause no additional section processing. The RDATA section of an A line in a master
@@ -12,13 +12,11 @@ pub struct ARdata {
 }
 
 impl BytesSerializable for ARdata {
-    type ParseError = ();
-
     fn to_bytes(&self) -> Vec<u8> {
         Vec::from(self.address.octets())
     }
 
-    fn parse(_bytes: &[u8]) -> Result<Self, Self::ParseError> {
+    fn parse(_bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
         todo!()
     }
 }
