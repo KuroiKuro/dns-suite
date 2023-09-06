@@ -158,16 +158,7 @@ impl BytesSerializable for DomainLabel {
     where
         Self: std::marker::Sized,
     {
-        let (remaining_input, parsed) =
-            byte_parser(bytes, 1).map_err(|_| ParseDataError::InvalidByteStructure)?;
-        let count_to_take = parsed[0];
-        let (remaining_input, parsed) = byte_parser(remaining_input, count_to_take as usize)
-            .map_err(|_| ParseDataError::InvalidByteStructure)?;
-        let ascii_str = AsciiStr::from_ascii(parsed)
-            .map_err(|_| ParseDataError::InvalidByteStructure)?
-            .to_owned();
-        let data = CharacterString::try_from(ascii_str)
-            .map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (data, remaining_input) = CharacterString::parse(bytes)?;
         Ok((Self { data }, remaining_input))
     }
 }
@@ -215,5 +206,22 @@ mod tests {
         if DomainLabel::try_from(too_long).is_ok() {
             panic!("Domain label that was too long was allowed to pass");
         }
+    }
+
+    #[test]
+    fn test_domain_label_parse() {
+        let bytes = [
+            5,
+            AsciiChar::w as u8,
+            AsciiChar::h as u8,
+            AsciiChar::i as u8,
+            AsciiChar::t as u8,
+            AsciiChar::e as u8,
+        ];
+
+        let expected_label = DomainLabel::try_from("white").unwrap();
+        let (domain_label, remaining) = DomainLabel::parse(&bytes).unwrap();
+        assert_eq!(domain_label, expected_label);
+        assert_eq!(remaining.len(), 0);
     }
 }
