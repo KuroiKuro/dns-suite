@@ -18,6 +18,8 @@ pub type LabelMap = HashMap<VecDeque<DomainLabel>, u16>;
 pub enum ParseDataError {
     #[error("Invalid byte structure")]
     InvalidByteStructure,
+    #[error("No data to parse")]
+    EmptyData,
 }
 
 /// A trait for types that can serialize and parse their data with bytes

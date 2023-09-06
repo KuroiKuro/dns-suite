@@ -158,6 +158,18 @@ impl BytesSerializable for DomainLabel {
     where
         Self: std::marker::Sized,
     {
+        // If the first byte is `0`, it means it's the termination of a domain
+        // name and an empty label should be returned
+        match bytes.first() {
+            Some(b) => {
+                if *b == 0 {
+                    return Ok((Self::new_empty(), &bytes[1..]));
+                }
+            },
+            None => {
+                return Err(ParseDataError::EmptyData)
+            }
+        }
         let (data, remaining_input) = CharacterString::parse(bytes)?;
         Ok((Self { data }, remaining_input))
     }
@@ -223,5 +235,14 @@ mod tests {
         let (domain_label, remaining) = DomainLabel::parse(&bytes).unwrap();
         assert_eq!(domain_label, expected_label);
         assert_eq!(remaining.len(), 0);
+
+        let bytes = [0];
+        let (domain_label, remaining) = DomainLabel::parse(&bytes).unwrap();
+        assert!(domain_label.is_empty());
+        assert_eq!(remaining.len(), 0);
+
+        let empty: [u8; 0] = [];
+        let result = DomainLabel::parse(&empty);
+        assert!(result.is_err());
     }
 }
