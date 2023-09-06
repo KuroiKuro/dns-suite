@@ -53,6 +53,10 @@ impl CharacterString {
         self.char_str.as_ref()
     }
 
+    pub fn ascii_str(&self) -> &AsciiString {
+        &self.char_str
+    }
+
     pub fn is_empty(&self) -> bool {
         self.len == 0
     }

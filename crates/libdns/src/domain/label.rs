@@ -144,6 +144,12 @@ impl DomainLabel {
     pub fn is_empty(&self) -> bool {
         self.data.len() == 0
     }
+
+    /// Returns a reference to the underlying data as an `AsciiString`, a type defined
+    /// in the `ascii` crate
+    pub fn as_ascii_str(&self) -> &AsciiString {
+        self.data.ascii_str()
+    }
 }
 
 impl BytesSerializable for DomainLabel {

@@ -29,7 +29,6 @@ pub enum DomainNameValidationError {
 #[derive(Clone, Debug)]
 pub struct DomainName {
     domain_labels: Vec<DomainLabel>,
-    domain_name: AsciiString,
 }
 
 impl TryFrom<&str> for DomainName {
@@ -68,10 +67,7 @@ impl TryFrom<&str> for DomainName {
             ));
         }
 
-        Ok(Self {
-            domain_labels,
-            domain_name: ascii_str,
-        })
+        Ok(Self { domain_labels })
     }
 }
 
@@ -97,8 +93,26 @@ impl BytesSerializable for DomainName {
             .collect_vec()
     }
 
-    fn parse(_bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
-        todo!()
+    /// Pass in a byte-serialized sequence of labels
+    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
+        let mut domain_labels: Vec<DomainLabel> = Vec::new();
+        let mut remaining: &[u8] = bytes;
+        // while let Ok((label, remaining)) = DomainLabel::parse(bytes) {
+        loop {
+            let (label, r) = match DomainLabel::parse(remaining) {
+                Ok(l) => l,
+                // There should be no parsing error here, because we should encounter
+                // the null terminating label first before parsing other data
+                Err(_) => return Err(ParseDataError::InvalidByteStructure)
+            };
+            remaining = r;
+            let is_empty = label.is_empty();
+            domain_labels.push(label);
+            if is_empty {
+                break;
+            }
+        };
+        Ok((Self { domain_labels }, remaining))
     }
 }
 
@@ -257,5 +271,53 @@ mod tests {
             domain_name.to_bytes_compressed(com_offset, &mut label_map);
         assert_eq!(expected_bytes, domain_bytes);
         assert_eq!(new_offset, com_offset + (expected_bytes.len() as u16));
+    }
+
+    #[test]
+    fn test_domain_name_parse() {
+        let bytes = [
+            4,
+            AsciiChar::d as u8,
+            AsciiChar::o as u8,
+            AsciiChar::c as u8,
+            AsciiChar::s as u8,
+            9,
+            AsciiChar::r as u8,
+            AsciiChar::u as u8,
+            AsciiChar::s as u8,
+            AsciiChar::t as u8,
+            AsciiChar::Minus as u8,
+            AsciiChar::l as u8,
+            AsciiChar::a as u8,
+            AsciiChar::n as u8,
+            AsciiChar::g as u8,
+            3,
+            AsciiChar::o as u8,
+            AsciiChar::r as u8,
+            AsciiChar::g as u8,
+            0
+        ];
+
+        let (domain_name, remaining) = DomainName::parse(&bytes).unwrap();
+        // 3 + 1 because of the null terminating label
+        assert_eq!(domain_name.domain_labels.len(), 4);
+        assert_eq!(remaining.len(), 0);
+
+        // Test without null terminator
+        let bytes = [
+            5,
+            AsciiChar::e as u8,
+            AsciiChar::r as u8,
+            AsciiChar::r as u8,
+            AsciiChar::o as u8,
+            AsciiChar::r as u8,
+            3,
+            AsciiChar::o as u8,
+            AsciiChar::r as u8,
+            AsciiChar::g as u8,
+        ];
+
+        let result = DomainName::parse(&bytes);
+        assert!(result.is_err());
     }
 }
