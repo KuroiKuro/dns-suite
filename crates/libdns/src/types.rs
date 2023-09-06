@@ -120,6 +120,8 @@ impl BytesSerializable for DomainPointer {
 mod tests {
     use std::str::FromStr;
 
+    use ascii::AsciiChar;
+
     use super::*;
 
     #[test]
@@ -136,5 +138,24 @@ mod tests {
         let empty_char_str = CharacterString::try_from(AsciiString::new()).unwrap();
         let expected_bytes2: Vec<u8> = vec![0];
         assert_eq!(empty_char_str.to_bytes(), expected_bytes2);
+    }
+
+    #[test]
+    fn test_character_string_parse() {
+        let bytes = [
+            6,
+            AsciiChar::y as u8,
+            AsciiChar::e as u8,
+            AsciiChar::l as u8,
+            AsciiChar::l as u8,
+            AsciiChar::o as u8,
+            AsciiChar::w as u8,
+        ];
+
+        let ascii_s = AsciiString::from_str("yellow").unwrap();
+        let expected_label = CharacterString::try_from(ascii_s).unwrap();
+        let (domain_label, remaining) = CharacterString::parse(&bytes).unwrap();
+        assert_eq!(domain_label, expected_label);
+        assert_eq!(remaining.len(), 0);
     }
 }
