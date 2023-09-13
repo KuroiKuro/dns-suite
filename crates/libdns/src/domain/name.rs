@@ -82,8 +82,6 @@ impl PartialEq for DomainName {
     }
 }
 
-impl DomainName {}
-
 impl BytesSerializable for DomainName {
     fn to_bytes(&self) -> Vec<u8> {
         self.domain_labels
