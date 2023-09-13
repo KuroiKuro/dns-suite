@@ -1,7 +1,7 @@
 use ascii::AsciiString;
 use thiserror::Error;
 
-use crate::{parse_utils::byte_parser, BytesSerializable, ParseDataError};
+use crate::{parse_utils::{byte_parser, bit_parser}, BytesSerializable, ParseDataError};
 
 pub const MAX_CHARACTER_STRING_LEN: usize = 256;
 
@@ -99,6 +99,9 @@ pub struct DomainPointer {
 }
 
 impl DomainPointer {
+    const OFFSET_INDICATOR: u16 = 0xC000;
+    const OFFSET_INDICATOR_BITS: u8 = 0b11;
+
     pub fn new(offset: u16) -> Self {
         Self { offset }
     }
@@ -107,16 +110,23 @@ impl DomainPointer {
 impl BytesSerializable for DomainPointer {
     fn to_bytes(&self) -> Vec<u8> {
         // Based on the spec, a domain pointer will start with two `1` bits
-        let offset_indicator: u16 = 0xC000;
         // Since a domain pointer is always two octets (16 bits), and we always
         // need to use `11` as the starting bits, we have no choice but to "discard"
         // the first 2 bits of an offset
-        let data = offset_indicator | self.offset;
+        let data = Self::OFFSET_INDICATOR | self.offset;
         data.to_be_bytes().to_vec()
     }
 
-    fn parse(_bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
-        todo!()
+    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
+        // let first_byte = bytes.first().unwrap();
+        let (remaining_input, parsed) = bit_parser((bytes, 0), 2).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        if parsed != Self::OFFSET_INDICATOR_BITS {
+            return Err(ParseDataError::InvalidByteStructure);
+        }
+        let (remaining_input, remaining_first_byte) = bit_parser(remaining_input, 6).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (remaining_input, second_byte) = byte_parser(remaining_input.0, 1).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let offset = (remaining_first_byte as u16) << 8 | second_byte[0] as u16;
+        Ok((Self::new(offset), remaining_input))
     }
 }
 
@@ -161,5 +171,24 @@ mod tests {
         let (domain_label, remaining) = CharacterString::parse(&bytes).unwrap();
         assert_eq!(domain_label, expected_label);
         assert_eq!(remaining.len(), 0);
+    }
+
+    #[test]
+    fn test_parse_domain_pointer() {
+        let domain_ptr_bytes: [u8; 2] = [
+            0b1100_0000,
+            0b0000_0111
+        ];
+        let (domain_ptr, remaining_input) = DomainPointer::parse(&domain_ptr_bytes).unwrap();
+        assert_eq!(domain_ptr.offset, 7);
+        assert_eq!(remaining_input.len(), 0);
+
+        let domain_ptr_bytes: [u8; 2] = [
+            0b1100_1110,
+            0b1110_1011
+        ];
+        let (domain_ptr, remaining_input) = DomainPointer::parse(&domain_ptr_bytes).unwrap();
+        assert_eq!(domain_ptr.offset, 3819);
+        assert_eq!(remaining_input.len(), 0);
     }
 }
