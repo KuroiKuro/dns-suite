@@ -135,8 +135,6 @@ pub trait CompressedBytesSerializable {
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::DomainName;
-
     use super::*;
 
     #[test]
