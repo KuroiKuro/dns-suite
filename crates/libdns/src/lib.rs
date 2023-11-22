@@ -16,9 +16,13 @@ type MessageOffset = u16;
 // All pointers must have `11` as the first two bits
 pub const POINTER_PREFIX: u16 = 0xC000;
 
-pub struct LabelMapInsertResult {
+pub struct LabelMapInsertOutcome {
+    /// The number of records (domain label sets) that were inserted into the map
     pub inserted_records: usize,
+    /// The new offset after the insertion of the records
     pub new_offset: MessageOffset,
+    /// The remaining labels that were not inserted into the map, because they
+    /// already exist in the map
     pub remaining_labels: Vec<DomainLabel>,
 }
 
@@ -40,13 +44,15 @@ impl LabelMap {
     /// a pointer for ["example", "com"], then we will return the domain pointer for
     /// ["example", "com"], as well as the remaining labels ["help"].
     pub fn get_domain_ptr(&self, labels: &[DomainLabel]) -> Option<(DomainPointer, Vec<DomainLabel>)> {
-        let mut labels_check = labels.to_vec();
+        let max_idx = labels.len() - 1;
         let mut remaining_labels = Vec::new();
-        while !labels_check.is_empty() {
-            if let Some(offset) = self.label_to_offset_map.get(&labels_check) {
+        for i in 0..max_idx {
+            let current_label_set = &labels[i..];
+            if let Some(offset) = self.label_to_offset_map.get(current_label_set) {
                 return Some((DomainPointer::new(*offset), remaining_labels));
+            } else {
+                remaining_labels.push(labels[i].clone());
             }
-            remaining_labels.push(labels_check.pop().unwrap());
         }
         None
     }
@@ -59,8 +65,10 @@ impl LabelMap {
     /// of labels while there are either labels remaining in the overall set, or until
     /// we encounter a set of labels that has already been inserted into the map, at
     /// which point we will stop the insertion, as it means that all of the subsequent
-    /// label sets have already been inserted in a prior `insert` operation
-    pub fn insert(&mut self, domain_labels: &[DomainLabel], offset: MessageOffset) -> LabelMapInsertResult {
+    /// label sets have already been inserted in a prior `insert` operation. If the
+    /// first label set has been already inserted into the map before, then calling
+    /// method will not cause any insertion to occur.
+    pub fn insert(&mut self, domain_labels: &[DomainLabel], offset: MessageOffset) -> LabelMapInsertOutcome {
         let mut inserted_records = 0;
         let mut current_offset = offset;
         // Use slicing of the domain_labels vec to iterate through the labels. With slicing, we can
@@ -84,7 +92,7 @@ impl LabelMap {
                 },
             }
         }
-        LabelMapInsertResult { inserted_records, new_offset: current_offset, remaining_labels }
+        LabelMapInsertOutcome { inserted_records, new_offset: current_offset, remaining_labels }
     }
 
     pub fn clear(&mut self) {
@@ -120,10 +128,22 @@ pub trait BytesSerializable {
         Self: std::marker::Sized;
 }
 
+/// The return result type of the `to_bytes_compressed` method of the
+/// `CompressedBytesSerializable` trait
+pub struct SerializeCompressedResult {
+    compressed_bytes: Vec<u8>,
+    new_offset: u16,
+}
+
 /// A trait for types that can serialize and parse their data in bytes that are
 /// compressed in the specification in RFC 1035.
 pub trait CompressedBytesSerializable {
-    fn to_bytes_compressed(&self, base_offset: u16, label_map: &mut LabelMap) -> (Vec<u8>, u16);
+    /// Serialize the data into bytes, following the compression rules in RFC 1035.
+    /// Using this method is just an indication that you would like the data to be
+    /// compressed if necessary, if no compression is possible then the output of
+    /// this method will be as if you called the regular `to_bytes` method defined
+    /// in the `BytesSerializable` trait.
+    fn to_bytes_compressed(&self, base_offset: u16, label_map: &mut LabelMap) -> SerializeCompressedResult;
     fn parse_compressed<'a>(
         bytes: &'a [u8],
         base_offset: u16,
@@ -169,5 +189,45 @@ mod tests {
         assert_eq!(result.inserted_records, 1);
         assert_eq!(result.new_offset, offset + labels[0].len() as u16);
         assert_eq!(result.remaining_labels, labels[1..].to_vec());
+    }
+
+    #[test]
+    fn test_get_domain_ptr() {
+        let mut label_map = LabelMap::new();
+        let labels = vec![
+            DomainLabel::try_from("api").unwrap(),
+            DomainLabel::try_from("stripe").unwrap(),
+            DomainLabel::try_from("com").unwrap(),
+        ];
+
+        let offset = 29;
+        label_map.insert(&labels, offset);
+        let (domain_ptr, remaining_labels) = label_map.get_domain_ptr(&labels).unwrap();
+        let expected_ptr = DomainPointer::new(offset);
+        assert_eq!(domain_ptr.to_bytes(), expected_ptr.to_bytes());
+        assert!(remaining_labels.is_empty());
+
+        // Test subdomain
+        let partial_labels = vec![
+            DomainLabel::try_from("stripe").unwrap(),
+            DomainLabel::try_from("com").unwrap(),
+        ];
+        let (domain_ptr, remaining_labels) = label_map.get_domain_ptr(&partial_labels).unwrap();
+        let expected_offset = offset + labels[0].len() as u16;
+        let expected_ptr = DomainPointer::new(expected_offset);
+        assert_eq!(domain_ptr.to_bytes(), expected_ptr.to_bytes());
+        assert_eq!(remaining_labels, vec![]);
+
+        // Test subdomain with remaining labels
+        let partial_labels = vec![
+            DomainLabel::try_from("docs").unwrap(),
+            DomainLabel::try_from("stripe").unwrap(),
+            DomainLabel::try_from("com").unwrap(),
+        ];
+        let (domain_ptr, remaining_labels) = label_map.get_domain_ptr(&partial_labels).unwrap();
+        let expected_offset = offset + labels[0].len() as u16;
+        let expected_ptr = DomainPointer::new(expected_offset);
+        assert_eq!(domain_ptr.to_bytes(), expected_ptr.to_bytes());
+        assert_eq!(remaining_labels, vec![partial_labels[0].clone()]);
     }
 }
