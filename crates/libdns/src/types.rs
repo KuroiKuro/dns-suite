@@ -101,6 +101,8 @@ pub struct DomainPointer {
 impl DomainPointer {
     const OFFSET_INDICATOR: u16 = 0xC000;
     const OFFSET_INDICATOR_BITS: u8 = 0b11;
+    /// The size of a domain pointer in bytes
+    pub const SIZE: u16 = 2;
 
     pub fn new(offset: u16) -> Self {
         Self { offset }

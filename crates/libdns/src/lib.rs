@@ -16,6 +16,10 @@ type MessageOffset = u16;
 // All pointers must have `11` as the first two bits
 pub const POINTER_PREFIX: u16 = 0xC000;
 
+pub fn create_pointer(offset: u16) -> u16 {
+    POINTER_PREFIX | offset
+}
+
 pub struct LabelMapInsertOutcome {
     /// The number of records (domain label sets) that were inserted into the map
     pub inserted_records: usize,
@@ -46,7 +50,7 @@ impl LabelMap {
     pub fn get_domain_ptr(&self, labels: &[DomainLabel]) -> Option<(DomainPointer, Vec<DomainLabel>)> {
         let max_idx = labels.len() - 1;
         let mut remaining_labels = Vec::new();
-        for i in 0..max_idx {
+        for i in 0..=max_idx {
             let current_label_set = &labels[i..];
             if let Some(offset) = self.label_to_offset_map.get(current_label_set) {
                 return Some((DomainPointer::new(*offset), remaining_labels));
