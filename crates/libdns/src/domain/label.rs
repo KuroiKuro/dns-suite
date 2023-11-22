@@ -7,7 +7,6 @@ use ascii::{AsciiChar, AsciiStr, AsciiString};
 use itertools::{Itertools, Position};
 use thiserror::Error;
 
-use crate::parse_utils::byte_parser;
 use crate::ParseDataError;
 use crate::{types::CharacterString, BytesSerializable};
 
@@ -98,7 +97,7 @@ impl DomainLabel {
             ));
         }
 
-        let chars = label.clone().chars();
+        let chars = label.chars();
         for (pos, ch) in chars.with_position() {
             if pos == Position::First && !ch.is_alphabetic() {
                 return Err(DomainLabelValidationError::InvalidStartChar(
@@ -171,10 +170,8 @@ impl BytesSerializable for DomainLabel {
                 if *b == 0 {
                     return Ok((Self::new_empty(), &bytes[1..]));
                 }
-            },
-            None => {
-                return Err(ParseDataError::EmptyData)
             }
+            None => return Err(ParseDataError::EmptyData),
         }
         let (data, remaining_input) = CharacterString::parse(bytes)?;
         Ok((Self { data }, remaining_input))

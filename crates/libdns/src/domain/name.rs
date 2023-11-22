@@ -4,7 +4,10 @@ use ascii::{AsciiChar, AsciiString};
 use itertools::Itertools;
 use thiserror::Error;
 
-use crate::{BytesSerializable, CompressedBytesSerializable, LabelMap, ParseDataError, types::DomainPointer, POINTER_PREFIX, SerializeCompressedResult};
+use crate::{
+    types::DomainPointer, BytesSerializable, CompressedBytesSerializable, LabelMap, ParseDataError,
+    SerializeCompressedResult,
+};
 
 use super::{DomainLabel, DomainLabelValidationError};
 
@@ -105,7 +108,7 @@ impl BytesSerializable for DomainName {
                 Ok(l) => l,
                 // There should be no parsing error here, because we should encounter
                 // the null terminating label first before parsing other data
-                Err(_) => return Err(ParseDataError::InvalidByteStructure)
+                Err(_) => return Err(ParseDataError::InvalidByteStructure),
             };
             remaining = r;
             let is_empty = label.is_empty();
@@ -113,13 +116,17 @@ impl BytesSerializable for DomainName {
             if is_empty {
                 break;
             }
-        };
+        }
         Ok((Self { domain_labels }, remaining))
     }
 }
 
 impl CompressedBytesSerializable for DomainName {
-    fn to_bytes_compressed(&self, base_offset: u16, label_map: &mut LabelMap) -> SerializeCompressedResult {
+    fn to_bytes_compressed(
+        &self,
+        base_offset: u16,
+        label_map: &mut LabelMap,
+    ) -> SerializeCompressedResult {
         // We need to check if the labels exist first before inserting into the map, otherwise we will always
         // get a domain pointer even when the labels were inserted for the first time in this function call
         let (compressed_bytes, new_offset) = {
@@ -142,9 +149,12 @@ impl CompressedBytesSerializable for DomainName {
                             .flat_map(|label| label.to_bytes())
                             .chain(domain_ptr.to_bytes())
                             .collect();
-                        (bytes, base_offset + remaining_labels_offset + DomainPointer::SIZE)
+                        (
+                            bytes,
+                            base_offset + remaining_labels_offset + DomainPointer::SIZE,
+                        )
                     }
-                },
+                }
                 None => {
                     // If not a single label exists in the map, then the output will be exactly the same as the non-compressed
                     // version
@@ -156,13 +166,16 @@ impl CompressedBytesSerializable for DomainName {
         };
 
         label_map.insert(&self.domain_labels, base_offset);
-        SerializeCompressedResult { compressed_bytes, new_offset }
+        SerializeCompressedResult {
+            compressed_bytes,
+            new_offset,
+        }
     }
 
     fn parse_compressed<'a>(
-        bytes: &'a [u8],
-        base_offset: u16,
-        label_map: &mut LabelMap,
+        _bytes: &'a [u8],
+        _base_offset: u16,
+        _label_map: &mut LabelMap,
     ) -> (Result<(Self, &'a [u8]), ParseDataError>, u16)
     where
         Self: std::marker::Sized,
@@ -284,7 +297,7 @@ mod tests {
             AsciiChar::o as u8,
             AsciiChar::r as u8,
             AsciiChar::g as u8,
-            0
+            0,
         ];
 
         let (domain_name, remaining) = DomainName::parse(&bytes).unwrap();

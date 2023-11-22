@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque, hash_map::Entry};
+use std::collections::{hash_map::Entry, HashMap};
 
 use domain::DomainLabel;
 use thiserror::Error;
@@ -37,17 +37,23 @@ pub struct LabelMap {
 
 impl LabelMap {
     pub fn new() -> Self {
-        Self { label_to_offset_map: HashMap::new(), offset_to_label_map: HashMap::new() }
+        Self {
+            label_to_offset_map: HashMap::new(),
+            offset_to_label_map: HashMap::new(),
+        }
     }
 
     /// Gets a domain pointer from the label map if it exists. If a domain pointer exists,
     /// then a vec of the remaining labels is also returned. This is mainly used when
     /// performing serialization of compressed messages.
-    /// 
+    ///
     /// For example, if we have a set of labels ["help", "example", "com"], and we found
     /// a pointer for ["example", "com"], then we will return the domain pointer for
     /// ["example", "com"], as well as the remaining labels ["help"].
-    pub fn get_domain_ptr(&self, labels: &[DomainLabel]) -> Option<(DomainPointer, Vec<DomainLabel>)> {
+    pub fn get_domain_ptr(
+        &self,
+        labels: &[DomainLabel],
+    ) -> Option<(DomainPointer, Vec<DomainLabel>)> {
         let max_idx = labels.len() - 1;
         let mut remaining_labels = Vec::new();
         for i in 0..=max_idx {
@@ -72,7 +78,11 @@ impl LabelMap {
     /// label sets have already been inserted in a prior `insert` operation. If the
     /// first label set has been already inserted into the map before, then calling
     /// method will not cause any insertion to occur.
-    pub fn insert(&mut self, domain_labels: &[DomainLabel], offset: MessageOffset) -> LabelMapInsertOutcome {
+    pub fn insert(
+        &mut self,
+        domain_labels: &[DomainLabel],
+        offset: MessageOffset,
+    ) -> LabelMapInsertOutcome {
         let mut inserted_records = 0;
         let mut current_offset = offset;
         // Use slicing of the domain_labels vec to iterate through the labels. With slicing, we can
@@ -88,15 +98,19 @@ impl LabelMap {
                 Entry::Occupied(entry) => {
                     remaining_labels = entry.key().to_vec();
                     break;
-                },
+                }
                 Entry::Vacant(entry) => {
                     entry.insert(current_offset);
                     inserted_records += 1;
                     current_offset += domain_labels[i].len_bytes() as u16;
-                },
+                }
             }
         }
-        LabelMapInsertOutcome { inserted_records, new_offset: current_offset, remaining_labels }
+        LabelMapInsertOutcome {
+            inserted_records,
+            new_offset: current_offset,
+            remaining_labels,
+        }
     }
 
     pub fn clear(&mut self) {
@@ -147,7 +161,11 @@ pub trait CompressedBytesSerializable {
     /// compressed if necessary, if no compression is possible then the output of
     /// this method will be as if you called the regular `to_bytes` method defined
     /// in the `BytesSerializable` trait.
-    fn to_bytes_compressed(&self, base_offset: u16, label_map: &mut LabelMap) -> SerializeCompressedResult;
+    fn to_bytes_compressed(
+        &self,
+        base_offset: u16,
+        label_map: &mut LabelMap,
+    ) -> SerializeCompressedResult;
     fn parse_compressed<'a>(
         bytes: &'a [u8],
         base_offset: u16,
@@ -172,7 +190,13 @@ mod tests {
         ];
         let result = label_map.insert(&labels, 0);
         assert_eq!(result.inserted_records, 3);
-        assert_eq!(result.new_offset, labels.iter().map(|label| label.len_bytes() as u16).sum::<u16>());
+        assert_eq!(
+            result.new_offset,
+            labels
+                .iter()
+                .map(|label| label.len_bytes() as u16)
+                .sum::<u16>()
+        );
         assert_eq!(result.remaining_labels, Vec::new());
 
         let offset = result.new_offset;

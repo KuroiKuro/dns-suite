@@ -1,7 +1,10 @@
 use ascii::AsciiString;
 use thiserror::Error;
 
-use crate::{parse_utils::{byte_parser, bit_parser}, BytesSerializable, ParseDataError};
+use crate::{
+    parse_utils::{bit_parser, byte_parser},
+    BytesSerializable, ParseDataError,
+};
 
 pub const MAX_CHARACTER_STRING_LEN: usize = 256;
 
@@ -121,12 +124,15 @@ impl BytesSerializable for DomainPointer {
 
     fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
         // let first_byte = bytes.first().unwrap();
-        let (remaining_input, parsed) = bit_parser((bytes, 0), 2).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (remaining_input, parsed) =
+            bit_parser((bytes, 0), 2).map_err(|_| ParseDataError::InvalidByteStructure)?;
         if parsed != Self::OFFSET_INDICATOR_BITS {
             return Err(ParseDataError::InvalidByteStructure);
         }
-        let (remaining_input, remaining_first_byte) = bit_parser(remaining_input, 6).map_err(|_| ParseDataError::InvalidByteStructure)?;
-        let (remaining_input, second_byte) = byte_parser(remaining_input.0, 1).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (remaining_input, remaining_first_byte) =
+            bit_parser(remaining_input, 6).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (remaining_input, second_byte) =
+            byte_parser(remaining_input.0, 1).map_err(|_| ParseDataError::InvalidByteStructure)?;
         let offset = (remaining_first_byte as u16) << 8 | second_byte[0] as u16;
         Ok((Self::new(offset), remaining_input))
     }
@@ -177,18 +183,12 @@ mod tests {
 
     #[test]
     fn test_parse_domain_pointer() {
-        let domain_ptr_bytes: [u8; 2] = [
-            0b1100_0000,
-            0b0000_0111
-        ];
+        let domain_ptr_bytes: [u8; 2] = [0b1100_0000, 0b0000_0111];
         let (domain_ptr, remaining_input) = DomainPointer::parse(&domain_ptr_bytes).unwrap();
         assert_eq!(domain_ptr.offset, 7);
         assert_eq!(remaining_input.len(), 0);
 
-        let domain_ptr_bytes: [u8; 2] = [
-            0b1100_1110,
-            0b1110_1011
-        ];
+        let domain_ptr_bytes: [u8; 2] = [0b1100_1110, 0b1110_1011];
         let (domain_ptr, remaining_input) = DomainPointer::parse(&domain_ptr_bytes).unwrap();
         assert_eq!(domain_ptr.offset, 3819);
         assert_eq!(remaining_input.len(), 0);

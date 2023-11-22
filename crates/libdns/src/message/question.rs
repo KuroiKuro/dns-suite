@@ -62,7 +62,8 @@ impl CompressedBytesSerializable for Question {
         label_map: &mut crate::LabelMap,
     ) -> SerializeCompressedResult {
         let result = self.qname.to_bytes_compressed(base_offset, label_map);
-        let compressed_bytes = result.compressed_bytes
+        let compressed_bytes = result
+            .compressed_bytes
             .into_iter()
             .chain((self.qtype as u16).to_be_bytes())
             .chain((self.qclass as u16).to_be_bytes())
@@ -70,7 +71,10 @@ impl CompressedBytesSerializable for Question {
 
         // Add 4 which is the number of bytes of qtype and qclass added together
         let new_offset = result.new_offset + 4;
-        SerializeCompressedResult { compressed_bytes, new_offset }
+        SerializeCompressedResult {
+            compressed_bytes,
+            new_offset,
+        }
     }
 
     fn parse_compressed<'a>(
@@ -127,7 +131,10 @@ impl CompressedBytesSerializable for MessageQuestions {
                 result.compressed_bytes
             })
             .collect_vec();
-        SerializeCompressedResult { compressed_bytes: question_bytes, new_offset: rolling_offset }
+        SerializeCompressedResult {
+            compressed_bytes: question_bytes,
+            new_offset: rolling_offset,
+        }
     }
 
     fn parse_compressed<'a>(
@@ -144,10 +151,7 @@ impl CompressedBytesSerializable for MessageQuestions {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        domain::DomainLabel,
-        LabelMap, create_pointer,
-    };
+    use crate::{create_pointer, domain::DomainLabel, LabelMap};
 
     use super::*;
 
