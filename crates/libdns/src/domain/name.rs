@@ -135,7 +135,7 @@ impl CompressedBytesSerializable for DomainName {
                     } else {
                         let remaining_labels_offset: u16 = remaining_labels
                             .iter()
-                            .map(|label| label.bytes_len() as u16)
+                            .map(|label| label.len_bytes() as u16)
                             .sum();
                         let bytes = remaining_labels
                             .iter()
