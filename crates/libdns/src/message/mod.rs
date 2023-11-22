@@ -1,5 +1,6 @@
 pub mod header;
 pub mod question;
+pub mod resource_record;
 
 // Placeholders
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
