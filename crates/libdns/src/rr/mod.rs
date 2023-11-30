@@ -1,7 +1,5 @@
 pub mod rdata;
 
-use crate::domain::DomainName;
-
 /// An enum of the available resource record types defined in RFC 1035.
 /// TYPE fields are used in resource records.  Note that these types are a
 /// subset of QTYPEs.
@@ -40,6 +38,31 @@ pub enum ResourceRecordType {
     Mx = 15,
     /// Text strings
     Txt = 16,
+}
+
+impl TryFrom<u16> for ResourceRecordType {
+    type Error = ();
+    fn try_from(value: u16) -> Result<Self, Self::Error> {
+        match value {
+            1 => Ok(ResourceRecordType::A),
+            2 => Ok(ResourceRecordType::Ns),
+            3 => Ok(ResourceRecordType::Md),
+            4 => Ok(ResourceRecordType::Mf),
+            5 => Ok(ResourceRecordType::Cname),
+            6 => Ok(ResourceRecordType::Soa),
+            7 => Ok(ResourceRecordType::Mb),
+            8 => Ok(ResourceRecordType::Mg),
+            9 => Ok(ResourceRecordType::Mr),
+            10 => Ok(ResourceRecordType::Null),
+            11 => Ok(ResourceRecordType::Wks),
+            12 => Ok(ResourceRecordType::Ptr),
+            13 => Ok(ResourceRecordType::Hinfo),
+            14 => Ok(ResourceRecordType::Minfo),
+            15 => Ok(ResourceRecordType::Mx),
+            16 => Ok(ResourceRecordType::Txt),
+            _ => Err(()),
+        }
+    }
 }
 
 /// An enum of the available query types defined in RFC 1035.
@@ -89,6 +112,35 @@ pub enum Qtype {
     All = 255,
 }
 
+impl TryFrom<u16> for Qtype {
+    type Error = ();
+    fn try_from(value: u16) -> Result<Self, Self::Error> {
+        match value {
+            1 => Ok(Qtype::A),
+            2 => Ok(Qtype::Ns),
+            3 => Ok(Qtype::Md),
+            4 => Ok(Qtype::Mf),
+            5 => Ok(Qtype::Cname),
+            6 => Ok(Qtype::Soa),
+            7 => Ok(Qtype::Mb),
+            8 => Ok(Qtype::Mg),
+            9 => Ok(Qtype::Mr),
+            10 => Ok(Qtype::Null),
+            11 => Ok(Qtype::Wks),
+            12 => Ok(Qtype::Ptr),
+            13 => Ok(Qtype::Hinfo),
+            14 => Ok(Qtype::Minfo),
+            15 => Ok(Qtype::Mx),
+            16 => Ok(Qtype::Txt),
+            252 => Ok(Qtype::Axfr),
+            253 => Ok(Qtype::Mailb),
+            254 => Ok(Qtype::Maila),
+            255 => Ok(Qtype::All),
+            _ => Err(()),
+        }
+    }
+}
+
 /// CLASS fields appear in resource records
 #[derive(Debug, Clone, Copy)]
 pub enum ResourceRecordClass {
@@ -100,6 +152,19 @@ pub enum ResourceRecordClass {
     Ch = 3,
     /// Hesiod [Dyer 87]
     Hs = 4,
+}
+
+impl TryFrom<u16> for ResourceRecordClass {
+    type Error = ();
+    fn try_from(value: u16) -> Result<Self, Self::Error> {
+        match value {
+            1 => Ok(ResourceRecordClass::In),
+            2 => Ok(ResourceRecordClass::Cs),
+            3 => Ok(ResourceRecordClass::Ch),
+            4 => Ok(ResourceRecordClass::Hs),
+            _ => Err(()),
+        }
+    }
 }
 
 /// QCLASS fields appear in the question section of a query. QCLASS values
@@ -116,4 +181,18 @@ pub enum ResourceRecordQClass {
     Hs = 4,
     /// Any class
     All = 255,
+}
+
+impl TryFrom<u16> for ResourceRecordQClass {
+    type Error = ();
+    fn try_from(value: u16) -> Result<Self, Self::Error> {
+        match value {
+            1 => Ok(ResourceRecordQClass::In),
+            2 => Ok(ResourceRecordQClass::Cs),
+            3 => Ok(ResourceRecordQClass::Ch),
+            4 => Ok(ResourceRecordQClass::Hs),
+            255 => Ok(ResourceRecordQClass::All),
+            _ => Err(()),
+        }
+    }
 }
