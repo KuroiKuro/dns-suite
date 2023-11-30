@@ -2,7 +2,7 @@ use std::num::Wrapping;
 
 use itertools::Itertools;
 
-use crate::{domain::DomainName, types::CharacterString, BytesSerializable, ParseDataError};
+use crate::{domain::DomainName, types::CharacterString, BytesSerializable, ParseDataError, parse_utils::parse_u32};
 
 pub mod internet;
 
@@ -18,8 +18,9 @@ impl BytesSerializable for CnameBytes {
         self.cname.to_bytes()
     }
 
-    fn parse(_bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
-        todo!()
+    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
+        let (cname, remaining_input) = DomainName::parse(bytes)?;
+        Ok((Self { cname }, remaining_input))
     }
 }
 
@@ -32,8 +33,9 @@ impl BytesSerializable for NsdnameBytes {
         self.nsdname.to_bytes()
     }
 
-    fn parse(_bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
-        todo!()
+    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
+        let (nsdname, remaining_input) = DomainName::parse(bytes)?;
+        Ok((Self { nsdname }, remaining_input))
     }
 }
 
@@ -46,8 +48,9 @@ impl BytesSerializable for PtrBytes {
         self.ptrdname.to_bytes()
     }
 
-    fn parse(_bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
-        todo!()
+    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
+        let (ptrdname, remaining_input) = DomainName::parse(bytes)?;
+        Ok((Self { ptrdname }, remaining_input))
     }
 }
 
@@ -98,8 +101,26 @@ impl BytesSerializable for SoaBytes {
             .collect_vec()
     }
 
-    fn parse(_bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
-        todo!()
+    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
+        let (mname, remaining_input) = DomainName::parse(bytes)?;
+        let (rname, remaining_input) = DomainName::parse(remaining_input)?;
+        let (remaining_input, serial) = parse_u32(remaining_input).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (remaining_input, refresh) = parse_u32(remaining_input).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (remaining_input, retry) = parse_u32(remaining_input).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (remaining_input, expire) = parse_u32(remaining_input).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (remaining_input, minimum) = parse_u32(remaining_input).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        Ok((
+            Self {
+                mname,
+                rname,
+                serial: Wrapping(serial),
+                refresh,
+                retry,
+                expire,
+                minimum,
+            },
+            remaining_input,
+        ))
     }
 }
 
@@ -117,7 +138,96 @@ impl BytesSerializable for TxtBytes {
             .collect_vec()
     }
 
-    fn parse(_bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
-        todo!()
+    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
+        let mut bytes = bytes;
+        let mut txt_data = Vec::new();
+        while let Ok((character_string, remaining_input)) = CharacterString::parse(bytes) {
+            txt_data.push(character_string);
+            bytes = remaining_input;
+        }
+        Ok((Self { txt_data }, bytes))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr;
+
+    use ascii::AsciiString;
+
+    use super::*;
+
+    #[test]
+    fn test_parse_cname_bytes() {
+        let domain = DomainName::try_from("bing.com").unwrap();
+        let expected_bytes = domain.to_bytes();
+        let (cname, _) = CnameBytes::parse(&expected_bytes).unwrap();
+        assert_eq!(cname.cname, domain);
+    }
+
+    #[test]
+    fn test_parse_nsdname_bytes() {
+        let domain = DomainName::try_from("stackoverflow.com").unwrap();
+        let expected_bytes = domain.to_bytes();
+        let (nsdname, _) = NsdnameBytes::parse(&expected_bytes).unwrap();
+        assert_eq!(nsdname.nsdname, domain);
+    }
+
+    #[test]
+    fn test_parse_ptr_bytes() {
+        let domain = DomainName::try_from("playground.net").unwrap();
+        let expected_bytes = domain.to_bytes();
+        let (ptrdname, _) = PtrBytes::parse(&expected_bytes).unwrap();
+        assert_eq!(ptrdname.ptrdname, domain);
+    }
+
+    #[test]
+    fn test_parse_soa_bytes() {
+        let mname = DomainName::try_from("ns1.example.com").unwrap();
+        let rname = DomainName::try_from("mail.example.com").unwrap();
+        let serial = Wrapping(2023113001);
+        let refresh = 3600;
+        let retry = 600;
+        let expire = 5184000;
+        let minimum = 60;
+        let soa = SoaBytes {
+            mname: mname.clone(),
+            rname: rname.clone(),
+            serial,
+            refresh,
+            retry,
+            expire,
+            minimum,
+        };
+
+        let expected_bytes = soa.to_bytes();
+        let (parsed_soa, _) = SoaBytes::parse(&expected_bytes).unwrap();
+        assert_eq!(parsed_soa.mname, mname);
+        assert_eq!(parsed_soa.rname, rname);
+        assert_eq!(parsed_soa.serial, serial);
+        assert_eq!(parsed_soa.refresh, refresh);
+        assert_eq!(parsed_soa.retry, retry);
+        assert_eq!(parsed_soa.expire, expire);
+        assert_eq!(parsed_soa.minimum, minimum);
+    }
+
+    #[test]
+    fn test_parse_txt_bytes() {
+        let charstr1 = CharacterString::try_from(AsciiString::from_str("Hesitation").unwrap()).unwrap();
+        let charstr2 = CharacterString::try_from(AsciiString::from_str("is").unwrap()).unwrap();
+        let charstr3 = CharacterString::try_from(AsciiString::from_str("defeat").unwrap()).unwrap();
+
+        let bytes = charstr1.to_bytes();
+        let (txt_bytes, _) = TxtBytes::parse(&bytes).unwrap();
+        assert_eq!(txt_bytes.txt_data, vec![charstr1.clone()]);
+
+        let bytes = bytes
+            .into_iter()
+            .chain(charstr2.to_bytes())
+            .chain(charstr3.to_bytes())
+            .collect::<Vec<_>>();
+        
+        let (txt_bytes, _) = TxtBytes::parse(&bytes).unwrap();
+        assert_eq!(txt_bytes.txt_data, vec![charstr1, charstr2, charstr3]);
     }
 }
