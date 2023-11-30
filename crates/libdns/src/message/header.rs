@@ -1,5 +1,5 @@
 use crate::{
-    parse_utils::{bit_parser, byte_parser},
+    parse_utils::{bit_parser, byte_parser, parse_u16},
     BytesSerializable, ParseDataError,
 };
 
@@ -141,14 +141,6 @@ impl Header {
 
     // Parsing functions
 
-    /// General function for parsing `ID, `QDCOUNT`, `ANCOUNT`, `NSCOUNT` and `ARCOUNT`,
-    /// which are all `u16s` and do not have special parsing requirements
-    fn parse_u16(bytes: &[u8]) -> IResult<&[u8], u16> {
-        let (remaining_input, parsed) = byte_parser(bytes, 2)?;
-        let (_, parsed_u16) = number::complete::be_u16(parsed)?;
-        Ok((remaining_input, parsed_u16))
-    }
-
     /// Parse the `qr` bit from the given bytes. The returned bit should be casted to
     /// `MessageType` by the caller. As the first bit-level parsing function to be
     /// called, the offset should always be `0`, unless using this parser in a
@@ -197,7 +189,7 @@ impl BytesSerializable for Header {
 
     fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
         let (bytes, id) =
-            Self::parse_u16(bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
+            parse_u16(bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
 
         let (bytes_with_offset, qr) =
             Self::parse_qr((bytes, 0)).map_err(|_| ParseDataError::InvalidByteStructure)?;
@@ -224,13 +216,13 @@ impl BytesSerializable for Header {
             ResponseCode::try_from(rcode).map_err(|_| ParseDataError::InvalidByteStructure)?;
 
         let (bytes, qdcount) =
-            Self::parse_u16(bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
+            parse_u16(bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
         let (bytes, ancount) =
-            Self::parse_u16(bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
+            parse_u16(bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
         let (bytes, nscount) =
-            Self::parse_u16(bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
+            parse_u16(bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
         let (bytes, arcount) =
-            Self::parse_u16(bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
+            parse_u16(bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
         Ok((
             Self {
                 id,
