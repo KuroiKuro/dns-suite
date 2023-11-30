@@ -25,3 +25,10 @@ pub fn parse_i32(bytes: &[u8]) -> IResult<&[u8], i32> {
     let (_, parsed_i32) = number::complete::be_i32(parsed)?;
     Ok((remaining_input, parsed_i32))
 }
+
+/// General function for parsing a `u32` from a sequence of bytes
+pub fn parse_u32(bytes: &[u8]) -> IResult<&[u8], u32> {
+    let (remaining_input, parsed) = byte_parser(bytes, 4)?;
+    let (_, parsed_u32) = number::complete::be_u32(parsed)?;
+    Ok((remaining_input, parsed_u32))
+}
