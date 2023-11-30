@@ -182,6 +182,38 @@ mod tests {
     }
 
     #[test]
+    fn test_serialize_soa_bytes() {
+        let mname = DomainName::try_from("ns1.example.com").unwrap();
+        let rname = DomainName::try_from("mail.example.com").unwrap();
+        let serial = Wrapping(2023113001u32);
+        let refresh: u32 = 3600;
+        let retry: u32 = 600;
+        let expire: u32 = 5184000;
+        let minimum: u32 = 60;
+
+        let mut bytes = Vec::new();
+        bytes.extend(mname.to_bytes());
+        bytes.extend(rname.to_bytes());
+        bytes.extend(serial.0.to_be_bytes());
+        bytes.extend(refresh.to_be_bytes());
+        bytes.extend(retry.to_be_bytes());
+        bytes.extend(expire.to_be_bytes());
+        bytes.extend(minimum.to_be_bytes());
+
+        let soa = SoaBytes {
+            mname: mname.clone(),
+            rname: rname.clone(),
+            serial,
+            refresh,
+            retry,
+            expire,
+            minimum,
+        };
+        let serialized_bytes = soa.to_bytes();
+        assert_eq!(bytes, serialized_bytes)
+    }
+
+    #[test]
     fn test_parse_soa_bytes() {
         let mname = DomainName::try_from("ns1.example.com").unwrap();
         let rname = DomainName::try_from("mail.example.com").unwrap();
@@ -211,6 +243,31 @@ mod tests {
         assert_eq!(parsed_soa.minimum, minimum);
     }
 
+    #[test]
+    fn test_serialize_txt_bytes() {
+        let charstr1 = CharacterString::try_from(AsciiString::from_str("En").unwrap()).unwrap();
+        let charstr2 = CharacterString::try_from(AsciiString::from_str("Taro").unwrap()).unwrap();
+        let charstr3 = CharacterString::try_from(AsciiString::from_str("Adun").unwrap()).unwrap();
+
+        let bytes = charstr1.to_bytes();
+        let txt = TxtBytes {
+            txt_data: vec![charstr1.clone()],
+        };
+        let txt_bytes = txt.to_bytes();
+        assert_eq!(bytes, txt_bytes);
+
+        let bytes = bytes
+            .into_iter()
+            .chain(charstr2.to_bytes())
+            .chain(charstr3.to_bytes())
+            .collect::<Vec<_>>();
+        let txt = TxtBytes {
+            txt_data: vec![charstr1, charstr2, charstr3],
+        };
+        let txt_bytes = txt.to_bytes();
+        assert_eq!(bytes, txt_bytes);
+    }
+    
     #[test]
     fn test_parse_txt_bytes() {
         let charstr1 = CharacterString::try_from(AsciiString::from_str("Hesitation").unwrap()).unwrap();
