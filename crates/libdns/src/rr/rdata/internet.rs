@@ -11,6 +11,12 @@ pub struct ARdata {
     address: Ipv4Addr,
 }
 
+impl ARdata {
+    pub fn new(address: Ipv4Addr) -> Self {
+        Self { address }
+    }
+}
+
 impl BytesSerializable for ARdata {
     fn to_bytes(&self) -> Vec<u8> {
         Vec::from(self.address.octets())
@@ -34,7 +40,7 @@ mod tests {
     fn test_ardata_to_bytes() {
         let octets = [132, 142, 0, 212];
         let address = Ipv4Addr::new(octets[0], octets[1], octets[2], octets[3]);
-        let ardata = ARdata { address };
+        let ardata = ARdata::new(address);
         let bytes = ardata.to_bytes();
         assert_eq!(bytes, octets);
     }
