@@ -1,6 +1,6 @@
 use std::net::Ipv4Addr;
 
-use crate::{BytesSerializable, ParseDataError};
+use crate::{BytesSerializable, ParseDataError, parse_utils::byte_parser};
 
 /// Hosts that have multiple Internet addresses will have multiple A records.
 /// A records cause no additional section processing. The RDATA section of an A line in a master
@@ -16,7 +16,34 @@ impl BytesSerializable for ARdata {
         Vec::from(self.address.octets())
     }
 
-    fn parse(_bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
-        todo!()
+    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
+        let (remaining_input, parsed_bytes) = byte_parser(bytes, 4).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let ardata = Self {
+            address: Ipv4Addr::new(parsed_bytes[0], parsed_bytes[1], parsed_bytes[2], parsed_bytes[3])
+        };
+        Ok((ardata, remaining_input))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::net::Ipv4Addr;
+    use super::*;
+
+    #[test]
+    fn test_ardata_to_bytes() {
+        let octets = [132, 142, 0, 212];
+        let address = Ipv4Addr::new(octets[0], octets[1], octets[2], octets[3]);
+        let ardata = ARdata { address };
+        let bytes = ardata.to_bytes();
+        assert_eq!(bytes, octets);
+    }
+
+    #[test]
+    fn test_ardata_parse() {
+        let bytes = [213, 12, 108, 95];
+        let (ardata, _) = ARdata::parse(&bytes).unwrap();
+        let expected_addr = Ipv4Addr::new(bytes[0], bytes[1], bytes[2], bytes[3]);
+        assert_eq!(ardata.address, expected_addr);
     }
 }
