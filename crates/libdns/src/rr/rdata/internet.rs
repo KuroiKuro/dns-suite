@@ -6,6 +6,7 @@ use crate::{BytesSerializable, ParseDataError, parse_utils::byte_parser};
 /// A records cause no additional section processing. The RDATA section of an A line in a master
 /// file is an Internet address expressed as four decimal numbers separated by dots without any
 /// imbedded spaces (e.g., "10.2.0.52" or "192.0.5.6").
+#[derive(Clone)]
 pub struct ARdata {
     /// Support only IPV4 addresses for initial iteration
     address: Ipv4Addr,

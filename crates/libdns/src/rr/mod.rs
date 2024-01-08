@@ -3,7 +3,7 @@ pub mod rdata;
 /// An enum of the available resource record types defined in RFC 1035.
 /// TYPE fields are used in resource records.  Note that these types are a
 /// subset of QTYPEs.
-
+#[repr(u16)]
 #[derive(Debug, Clone, Copy)]
 pub enum ResourceRecordType {
     /// A host address
@@ -68,6 +68,7 @@ impl TryFrom<u16> for ResourceRecordType {
 /// An enum of the available query types defined in RFC 1035.
 /// QTYPE fields appear in the question part of a query. QTYPES are a
 /// superset of TYPEs, hence all TYPEs are valid QTYPEs.
+#[repr(u16)]
 #[derive(Debug, Clone, Copy)]
 pub enum Qtype {
     /// A host address
@@ -142,6 +143,7 @@ impl TryFrom<u16> for Qtype {
 }
 
 /// CLASS fields appear in resource records
+#[repr(u16)]
 #[derive(Debug, Clone, Copy)]
 pub enum ResourceRecordClass {
     /// The internet
@@ -169,6 +171,7 @@ impl TryFrom<u16> for ResourceRecordClass {
 
 /// QCLASS fields appear in the question section of a query. QCLASS values
 /// are a superset of CLASS values; every CLASS is a valid QCLASS.
+#[repr(u16)]
 #[derive(Debug, Clone, Copy)]
 pub enum ResourceRecordQClass {
     /// The internet
