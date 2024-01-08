@@ -245,14 +245,12 @@ mod tests {
         let r#type = ResourceRecordType::A;
         let class = ResourceRecordClass::In;
         let ttl = 1132;
-
+        
+        // Create expected bytes
         let mut expected_bytes = create_expected_bytes(&name, r#type, class, ttl, rdlength);
         expected_bytes.extend(ardata_bytes);
 
         let rr = ResourceRecord::new(name, r#type, class, ttl, rdata);
-
-        // Create expected bytes
-
         let bytes = rr.to_bytes();
         assert_eq!(bytes, expected_bytes);
     }
