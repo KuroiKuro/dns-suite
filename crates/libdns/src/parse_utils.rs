@@ -1,4 +1,4 @@
-use nom::{bits::complete::take, IResult, number};
+use nom::{bits::complete::take, number, IResult};
 
 /// Parse `count` bits from the input. The input should be a tuple containing the
 /// input byte slice, and the offset of the slice to parse from. The returned value

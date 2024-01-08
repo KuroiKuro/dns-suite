@@ -1,11 +1,11 @@
 use crate::{
-    parse_utils::{bit_parser, byte_parser, parse_u16},
+    parse_utils::{bit_parser, parse_u16},
     BytesSerializable, ParseDataError,
 };
 
 use super::{MessageType, QueryOpcode, ResponseCode};
 use itertools::Itertools;
-use nom::{number, IResult};
+use nom::{IResult};
 use rand::random;
 use thiserror::Error;
 
@@ -188,8 +188,7 @@ impl BytesSerializable for Header {
     }
 
     fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
-        let (bytes, id) =
-            parse_u16(bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (bytes, id) = parse_u16(bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
 
         let (bytes_with_offset, qr) =
             Self::parse_qr((bytes, 0)).map_err(|_| ParseDataError::InvalidByteStructure)?;

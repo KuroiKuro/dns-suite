@@ -1,6 +1,6 @@
 use std::net::Ipv4Addr;
 
-use crate::{BytesSerializable, ParseDataError, parse_utils::byte_parser};
+use crate::{parse_utils::byte_parser, BytesSerializable, ParseDataError};
 
 /// Hosts that have multiple Internet addresses will have multiple A records.
 /// A records cause no additional section processing. The RDATA section of an A line in a master
@@ -24,9 +24,15 @@ impl BytesSerializable for ARdata {
     }
 
     fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
-        let (remaining_input, parsed_bytes) = byte_parser(bytes, 4).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (remaining_input, parsed_bytes) =
+            byte_parser(bytes, 4).map_err(|_| ParseDataError::InvalidByteStructure)?;
         let ardata = Self {
-            address: Ipv4Addr::new(parsed_bytes[0], parsed_bytes[1], parsed_bytes[2], parsed_bytes[3])
+            address: Ipv4Addr::new(
+                parsed_bytes[0],
+                parsed_bytes[1],
+                parsed_bytes[2],
+                parsed_bytes[3],
+            ),
         };
         Ok((ardata, remaining_input))
     }
@@ -34,8 +40,8 @@ impl BytesSerializable for ARdata {
 
 #[cfg(test)]
 mod tests {
-    use std::net::Ipv4Addr;
     use super::*;
+    use std::net::Ipv4Addr;
 
     #[test]
     fn test_ardata_to_bytes() {

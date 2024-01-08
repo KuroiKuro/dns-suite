@@ -1,7 +1,10 @@
 use crate::{
     domain::DomainName,
     parse_utils::{byte_parser, parse_i32, parse_u16},
-    rr::{rdata::{self, internet::ARdata, NsdnameBytes, CnameBytes, SoaBytes, PtrBytes, TxtBytes}, ResourceRecordClass, ResourceRecordType},
+    rr::{
+        rdata::{self, internet::ARdata, CnameBytes, NsdnameBytes, PtrBytes, SoaBytes, TxtBytes},
+        ResourceRecordClass, ResourceRecordType,
+    },
     BytesSerializable, ParseDataError,
 };
 
@@ -40,28 +43,28 @@ impl Rdata {
                     Err(_) => return None,
                 };
                 Some(Self::A(data))
-            },
+            }
             ResourceRecordType::Ns => {
                 let data = match NsdnameBytes::parse(bytes) {
                     Ok(d) => d.0,
                     _ => return None,
                 };
                 Some(Self::Ns(data))
-            },
+            }
             ResourceRecordType::Cname => {
                 let data = match CnameBytes::parse(bytes) {
                     Ok(d) => d.0,
                     _ => return None,
                 };
                 Some(Self::Cname(data))
-            },
+            }
             ResourceRecordType::Soa => {
                 let data = match SoaBytes::parse(bytes) {
                     Ok(d) => d.0,
                     _ => return None,
                 };
                 Some(Self::Soa(data))
-            },
+            }
             // ResourceRecordType::Wks => todo!(),
             ResourceRecordType::Ptr => {
                 let data = match PtrBytes::parse(bytes) {
@@ -69,7 +72,7 @@ impl Rdata {
                     _ => return None,
                 };
                 Some(Self::Ptr(data))
-            },
+            }
             // ResourceRecordType::Hinfo => todo!(),
             // ResourceRecordType::Mx => todo!(),
             ResourceRecordType::Txt => {
@@ -78,12 +81,11 @@ impl Rdata {
                     _ => return None,
                 };
                 Some(Self::Txt(data))
-            },
+            }
             _ => None,
         }
     }
 }
-
 
 /// All RRs have the same top level format shown below:
 ///                               1  1  1  1  1  1
@@ -191,7 +193,8 @@ impl BytesSerializable for ResourceRecord {
         // Based on rdlength, take the exact amount of data to parse for rdata
         let (remaining_input, rdata_bytes) = byte_parser(remaining_input, rdlength as usize)
             .map_err(|_| ParseDataError::InvalidByteStructure)?;
-        let rdata = Rdata::parse(r#type, rdata_bytes).ok_or(ParseDataError::InvalidByteStructure)?;
+        let rdata =
+            Rdata::parse(r#type, rdata_bytes).ok_or(ParseDataError::InvalidByteStructure)?;
 
         Ok((
             Self {
@@ -206,17 +209,22 @@ impl BytesSerializable for ResourceRecord {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use std::net::Ipv4Addr;
     use itertools::Itertools;
+    use std::net::Ipv4Addr;
 
     use super::*;
 
     /// Create the expected bytes for the initial section of the resource record, which is common across all of the testing
     /// functions here and does not require any special logic
-    fn create_expected_bytes(name: &DomainName, r#type: ResourceRecordType, class: ResourceRecordClass, ttl: i32, rdlength: usize) -> Vec<u8> {
+    fn create_expected_bytes(
+        name: &DomainName,
+        r#type: ResourceRecordType,
+        class: ResourceRecordClass,
+        ttl: i32,
+        rdlength: usize,
+    ) -> Vec<u8> {
         // Use a separate buffer for type, class and ttl because we always know the number of bytes for them
         let mut bytes = Vec::with_capacity(8);
         bytes.extend((r#type as u16).to_be_bytes());
@@ -224,11 +232,7 @@ mod tests {
         bytes.extend(ttl.to_be_bytes());
         bytes.extend((rdlength as u16).to_be_bytes());
 
-        name
-            .to_bytes()
-            .into_iter()
-            .chain(bytes)
-            .collect_vec()
+        name.to_bytes().into_iter().chain(bytes).collect_vec()
     }
 
     #[test]
@@ -245,7 +249,7 @@ mod tests {
         let r#type = ResourceRecordType::A;
         let class = ResourceRecordClass::In;
         let ttl = 1132;
-        
+
         // Create expected bytes
         let mut expected_bytes = create_expected_bytes(&name, r#type, class, ttl, rdlength);
         expected_bytes.extend(ardata_bytes);

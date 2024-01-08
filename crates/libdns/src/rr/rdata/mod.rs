@@ -2,7 +2,10 @@ use std::num::Wrapping;
 
 use itertools::Itertools;
 
-use crate::{domain::DomainName, types::CharacterString, BytesSerializable, ParseDataError, parse_utils::parse_u32};
+use crate::{
+    domain::DomainName, parse_utils::parse_u32, types::CharacterString, BytesSerializable,
+    ParseDataError,
+};
 
 pub mod internet;
 
@@ -104,11 +107,16 @@ impl BytesSerializable for SoaBytes {
     fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
         let (mname, remaining_input) = DomainName::parse(bytes)?;
         let (rname, remaining_input) = DomainName::parse(remaining_input)?;
-        let (remaining_input, serial) = parse_u32(remaining_input).map_err(|_| ParseDataError::InvalidByteStructure)?;
-        let (remaining_input, refresh) = parse_u32(remaining_input).map_err(|_| ParseDataError::InvalidByteStructure)?;
-        let (remaining_input, retry) = parse_u32(remaining_input).map_err(|_| ParseDataError::InvalidByteStructure)?;
-        let (remaining_input, expire) = parse_u32(remaining_input).map_err(|_| ParseDataError::InvalidByteStructure)?;
-        let (remaining_input, minimum) = parse_u32(remaining_input).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (remaining_input, serial) =
+            parse_u32(remaining_input).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (remaining_input, refresh) =
+            parse_u32(remaining_input).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (remaining_input, retry) =
+            parse_u32(remaining_input).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (remaining_input, expire) =
+            parse_u32(remaining_input).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (remaining_input, minimum) =
+            parse_u32(remaining_input).map_err(|_| ParseDataError::InvalidByteStructure)?;
         Ok((
             Self {
                 mname,
@@ -267,10 +275,11 @@ mod tests {
         let txt_bytes = txt.to_bytes();
         assert_eq!(bytes, txt_bytes);
     }
-    
+
     #[test]
     fn test_parse_txt_bytes() {
-        let charstr1 = CharacterString::try_from(AsciiString::from_str("Hesitation").unwrap()).unwrap();
+        let charstr1 =
+            CharacterString::try_from(AsciiString::from_str("Hesitation").unwrap()).unwrap();
         let charstr2 = CharacterString::try_from(AsciiString::from_str("is").unwrap()).unwrap();
         let charstr3 = CharacterString::try_from(AsciiString::from_str("defeat").unwrap()).unwrap();
 
@@ -283,7 +292,7 @@ mod tests {
             .chain(charstr2.to_bytes())
             .chain(charstr3.to_bytes())
             .collect::<Vec<_>>();
-        
+
         let (txt_bytes, _) = TxtBytes::parse(&bytes).unwrap();
         assert_eq!(txt_bytes.txt_data, vec![charstr1, charstr2, charstr3]);
     }
