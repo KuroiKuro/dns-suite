@@ -4,7 +4,7 @@ pub mod rdata;
 /// TYPE fields are used in resource records.  Note that these types are a
 /// subset of QTYPEs.
 #[repr(u16)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ResourceRecordType {
     /// A host address
     A = 1,
@@ -69,7 +69,7 @@ impl TryFrom<u16> for ResourceRecordType {
 /// QTYPE fields appear in the question part of a query. QTYPES are a
 /// superset of TYPEs, hence all TYPEs are valid QTYPEs.
 #[repr(u16)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Qtype {
     /// A host address
     A = 1,
@@ -144,7 +144,7 @@ impl TryFrom<u16> for Qtype {
 
 /// CLASS fields appear in resource records
 #[repr(u16)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ResourceRecordClass {
     /// The internet
     In = 1,
@@ -172,7 +172,7 @@ impl TryFrom<u16> for ResourceRecordClass {
 /// QCLASS fields appear in the question section of a query. QCLASS values
 /// are a superset of CLASS values; every CLASS is a valid QCLASS.
 #[repr(u16)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ResourceRecordQClass {
     /// The internet
     In = 1,

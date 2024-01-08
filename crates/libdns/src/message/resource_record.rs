@@ -10,7 +10,7 @@ use crate::{
 
 /// An enum to represent all of the possible forms data that can be included in a resource record.
 /// An enum is used so that we can contain different structs in the `ResourceRecord` struct.
-enum Rdata {
+pub enum Rdata {
     Cname(rdata::CnameBytes),
     Ns(rdata::NsdnameBytes),
     Ptr(rdata::PtrBytes),
@@ -216,6 +216,11 @@ mod tests {
 
     use super::*;
 
+    const EXAMPLE_DOMAIN_BYTES: [u8; 13] = [
+        7, 101, 120, 97, 109, 112, 108, 101, 3, 99, 111, 109, 0
+    ];
+    const EXAMPLE_DOMAIN: &str = "example.com";
+
     /// Create the expected bytes for the initial section of the resource record, which is common across all of the testing
     /// functions here and does not require any special logic
     fn create_expected_bytes(
@@ -245,7 +250,7 @@ mod tests {
         let rdlength = ardata_bytes.len();
         let rdata = Rdata::A(ardata);
 
-        let name = DomainName::try_from("example.com").unwrap();
+        let name = DomainName::try_from(EXAMPLE_DOMAIN).unwrap();
         let r#type = ResourceRecordType::A;
         let class = ResourceRecordClass::In;
         let ttl = 1132;
@@ -257,5 +262,30 @@ mod tests {
         let rr = ResourceRecord::new(name, r#type, class, ttl, rdata);
         let bytes = rr.to_bytes();
         assert_eq!(bytes, expected_bytes);
+    }
+
+    #[test]
+    fn test_resource_record_a_parse() {
+        let mut bytes_to_parse = Vec::from(EXAMPLE_DOMAIN_BYTES);
+        let expected_rr_type = ResourceRecordType::A;
+        let expected_rr_class = ResourceRecordClass::In;
+        let expected_ttl: i32 = 86400;
+        let expected_domain = DomainName::try_from(EXAMPLE_DOMAIN).unwrap();
+        let octets = [100, 201, 192, 61];
+        let expected_ardata = ARdata::new(Ipv4Addr::new(octets[0], octets[1], octets[2], octets[3]));
+        let expected_ardata_bytes = expected_ardata.to_bytes();
+
+        bytes_to_parse.extend((expected_rr_type as u16).to_be_bytes());
+        bytes_to_parse.extend((expected_rr_class as u16).to_be_bytes());
+        bytes_to_parse.extend(expected_ttl.to_be_bytes());
+        bytes_to_parse.extend((expected_ardata_bytes.len() as u16).to_be_bytes());
+        bytes_to_parse.extend(expected_ardata.to_bytes());
+
+        let (rr, remaining_bytes) = ResourceRecord::parse(&bytes_to_parse).unwrap();
+        assert!(remaining_bytes.is_empty());
+        assert_eq!(rr.name, expected_domain);
+        assert_eq!(rr.r#type, expected_rr_type);
+        assert_eq!(rr.class, expected_rr_class);
+        assert_eq!(rr.ttl, expected_ttl);
     }
 }
