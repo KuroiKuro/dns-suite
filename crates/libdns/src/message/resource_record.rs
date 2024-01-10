@@ -212,8 +212,11 @@ impl BytesSerializable for ResourceRecord {
 
 #[cfg(test)]
 mod tests {
+    use ascii::AsciiString;
     use itertools::Itertools;
-    use std::net::Ipv4Addr;
+    use std::{net::Ipv4Addr, str::FromStr};
+
+    use crate::types::CharacterString;
 
     use super::*;
 
@@ -529,5 +532,61 @@ mod tests {
         assert_eq!(rr.class, expected_rr_class);
         assert_eq!(rr.ttl, expected_ttl);
         assert_eq!(rr.rdata, Rdata::Soa(expected_soa));
+    }
+
+    #[test]
+    fn test_resource_record_txt_to_bytes() {
+        let txt_data = vec![
+            CharacterString::try_from(AsciiString::from_str("Shadowheart").unwrap()).unwrap(),
+            CharacterString::try_from(AsciiString::from_str("Wyll").unwrap()).unwrap(),
+        ];
+        let txt = TxtBytes::new(txt_data);
+        let txt_bytes = txt.to_bytes();
+        let rdlength = txt_bytes.len();
+        let rdata = Rdata::Txt(txt);
+
+        let name = DomainName::try_from(EXAMPLE_DOMAIN).unwrap();
+        let r#type = ResourceRecordType::Cname;
+        let class = ResourceRecordClass::In;
+        let ttl = 21274;
+
+        // Create expected bytes
+        let mut expected_bytes = create_expected_bytes(&name, r#type, class, ttl, rdlength);
+        expected_bytes.extend(txt_bytes);
+
+        let rr = ResourceRecord::new(name, r#type, class, ttl, rdata);
+        let bytes = rr.to_bytes();
+        assert_eq!(bytes, expected_bytes);
+    }
+
+    #[test]
+    fn test_resource_record_txt_parse() {
+        // Add bytes for `ns` label in `ns.example.com`
+        let mut bytes_to_parse = Vec::from(EXAMPLE_DOMAIN_BYTES);
+        let expected_rr_type = ResourceRecordType::Txt;
+        let expected_rr_class = ResourceRecordClass::In;
+        let expected_ttl: i32 = 86400;
+        let expected_domain = DomainName::try_from(EXAMPLE_DOMAIN).unwrap();
+
+        let expected_txt_data = vec![
+            CharacterString::try_from(AsciiString::from_str("Karlach").unwrap()).unwrap(),
+            CharacterString::try_from(AsciiString::from_str("Lae'zel").unwrap()).unwrap(),
+        ];
+        let expected_txt = TxtBytes::new(expected_txt_data);
+        let expected_txt_bytes = expected_txt.to_bytes();
+
+        bytes_to_parse.extend((expected_rr_type as u16).to_be_bytes());
+        bytes_to_parse.extend((expected_rr_class as u16).to_be_bytes());
+        bytes_to_parse.extend(expected_ttl.to_be_bytes());
+        bytes_to_parse.extend((expected_txt_bytes.len() as u16).to_be_bytes());
+        bytes_to_parse.extend(expected_txt.to_bytes());
+
+        let (rr, remaining_bytes) = ResourceRecord::parse(&bytes_to_parse).unwrap();
+        assert!(remaining_bytes.is_empty());
+        assert_eq!(rr.name, expected_domain);
+        assert_eq!(rr.r#type, expected_rr_type);
+        assert_eq!(rr.class, expected_rr_class);
+        assert_eq!(rr.ttl, expected_ttl);
+        assert_eq!(rr.rdata, Rdata::Txt(expected_txt));
     }
 }

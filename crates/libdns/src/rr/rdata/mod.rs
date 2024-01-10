@@ -183,6 +183,12 @@ pub struct TxtBytes {
     txt_data: Vec<CharacterString>,
 }
 
+impl TxtBytes {
+    pub fn new(txt_data: Vec<CharacterString>) -> Self {
+        Self { txt_data }
+    }
+}
+
 impl BytesSerializable for TxtBytes {
     fn to_bytes(&self) -> Vec<u8> {
         self.txt_data
