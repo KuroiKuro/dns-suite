@@ -10,6 +10,7 @@ use crate::{
 
 /// An enum to represent all of the possible forms data that can be included in a resource record.
 /// An enum is used so that we can contain different structs in the `ResourceRecord` struct.
+#[derive(Debug, PartialEq)]
 pub enum Rdata {
     Cname(rdata::CnameBytes),
     Ns(rdata::NsdnameBytes),
@@ -271,6 +272,7 @@ mod tests {
         let expected_rr_class = ResourceRecordClass::In;
         let expected_ttl: i32 = 86400;
         let expected_domain = DomainName::try_from(EXAMPLE_DOMAIN).unwrap();
+
         let octets = [100, 201, 192, 61];
         let expected_ardata = ARdata::new(Ipv4Addr::new(octets[0], octets[1], octets[2], octets[3]));
         let expected_ardata_bytes = expected_ardata.to_bytes();
@@ -287,5 +289,110 @@ mod tests {
         assert_eq!(rr.r#type, expected_rr_type);
         assert_eq!(rr.class, expected_rr_class);
         assert_eq!(rr.ttl, expected_ttl);
+        assert_eq!(rr.rdata, Rdata::A(expected_ardata));
+    }
+
+    #[test]
+    fn test_resource_record_ns_to_bytes() {
+        let ns_name = "ns.example.com";
+        let domain_name = DomainName::try_from(ns_name).unwrap();
+        let ns = NsdnameBytes::new(domain_name);
+        let ns_bytes = ns.to_bytes();
+        let rdlength = ns_bytes.len();
+        let rdata = Rdata::Ns(ns);
+
+        let name = DomainName::try_from(EXAMPLE_DOMAIN).unwrap();
+        let r#type = ResourceRecordType::Ns;
+        let class = ResourceRecordClass::In;
+        let ttl = 11932;
+
+        // Create expected bytes
+        let mut expected_bytes = create_expected_bytes(&name, r#type, class, ttl, rdlength);
+        expected_bytes.extend(ns_bytes);
+
+        let rr = ResourceRecord::new(name, r#type, class, ttl, rdata);
+        let bytes = rr.to_bytes();
+        assert_eq!(bytes, expected_bytes);
+    }
+
+    #[test]
+    fn test_resource_record_ns_parse() {
+        // Add bytes for `ns` label in `ns.example.com`
+        let mut bytes_to_parse = Vec::from(EXAMPLE_DOMAIN_BYTES);
+        let expected_rr_type = ResourceRecordType::Ns;
+        let expected_rr_class = ResourceRecordClass::In;
+        let expected_ttl: i32 = 86400;
+        let expected_domain = DomainName::try_from(EXAMPLE_DOMAIN).unwrap();
+
+        let ns_domain = "ns.example.com";
+        let expected_ns_domain = DomainName::try_from(ns_domain).unwrap();
+        let expected_ns = NsdnameBytes::new(expected_ns_domain);
+        let expected_ns_bytes = expected_ns.to_bytes();
+
+        bytes_to_parse.extend((expected_rr_type as u16).to_be_bytes());
+        bytes_to_parse.extend((expected_rr_class as u16).to_be_bytes());
+        bytes_to_parse.extend(expected_ttl.to_be_bytes());
+        bytes_to_parse.extend((expected_ns_bytes.len() as u16).to_be_bytes());
+        bytes_to_parse.extend(expected_ns.to_bytes());
+
+        let (rr, remaining_bytes) = ResourceRecord::parse(&bytes_to_parse).unwrap();
+        assert!(remaining_bytes.is_empty());
+        assert_eq!(rr.name, expected_domain);
+        assert_eq!(rr.r#type, expected_rr_type);
+        assert_eq!(rr.class, expected_rr_class);
+        assert_eq!(rr.ttl, expected_ttl);
+        assert_eq!(rr.rdata, Rdata::Ns(expected_ns));
+    }
+
+    #[test]
+    fn test_resource_record_ptr_to_bytes() {
+        let subdomain = "sub.example.com";
+        let subdomain_name = DomainName::try_from(subdomain).unwrap();
+        let ptr = PtrBytes::new(subdomain_name);
+        let ptr_bytes = ptr.to_bytes();
+        let rdlength = ptr_bytes.len();
+        let rdata = Rdata::Ptr(ptr);
+
+        let name = DomainName::try_from(EXAMPLE_DOMAIN).unwrap();
+        let r#type = ResourceRecordType::Ptr;
+        let class = ResourceRecordClass::In;
+        let ttl = 11932;
+
+        // Create expected bytes
+        let mut expected_bytes = create_expected_bytes(&name, r#type, class, ttl, rdlength);
+        expected_bytes.extend(ptr_bytes);
+
+        let rr = ResourceRecord::new(name, r#type, class, ttl, rdata);
+        let bytes = rr.to_bytes();
+        assert_eq!(bytes, expected_bytes);
+    }
+
+    #[test]
+    fn test_resource_record_ptr_parse() {
+        // Add bytes for `ns` label in `ns.example.com`
+        let mut bytes_to_parse = Vec::from(EXAMPLE_DOMAIN_BYTES);
+        let expected_rr_type = ResourceRecordType::Ptr;
+        let expected_rr_class = ResourceRecordClass::In;
+        let expected_ttl: i32 = 86400;
+        let expected_domain = DomainName::try_from(EXAMPLE_DOMAIN).unwrap();
+
+        let ptr_domain = "sub.example.com";
+        let expected_ptr_domain = DomainName::try_from(ptr_domain).unwrap();
+        let expected_ptr = PtrBytes::new(expected_ptr_domain);
+        let expected_ptr_bytes = expected_ptr.to_bytes();
+
+        bytes_to_parse.extend((expected_rr_type as u16).to_be_bytes());
+        bytes_to_parse.extend((expected_rr_class as u16).to_be_bytes());
+        bytes_to_parse.extend(expected_ttl.to_be_bytes());
+        bytes_to_parse.extend((expected_ptr_bytes.len() as u16).to_be_bytes());
+        bytes_to_parse.extend(expected_ptr.to_bytes());
+
+        let (rr, remaining_bytes) = ResourceRecord::parse(&bytes_to_parse).unwrap();
+        assert!(remaining_bytes.is_empty());
+        assert_eq!(rr.name, expected_domain);
+        assert_eq!(rr.r#type, expected_rr_type);
+        assert_eq!(rr.class, expected_rr_class);
+        assert_eq!(rr.ttl, expected_ttl);
+        assert_eq!(rr.rdata, Rdata::Ptr(expected_ptr));
     }
 }

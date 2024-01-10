@@ -12,6 +12,7 @@ pub mod internet;
 /// A type representing the data of a `CNAME` resource type.
 /// A <domain-name> which specifies the canonical or primary name for the owner.
 /// The owner name is an alias.
+#[derive(Debug, PartialEq)]
 pub struct CnameBytes {
     cname: DomainName,
 }
@@ -27,8 +28,13 @@ impl BytesSerializable for CnameBytes {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub struct NsdnameBytes {
     nsdname: DomainName,
+}
+
+impl NsdnameBytes {
+    pub fn new(nsdname: DomainName) -> Self { Self { nsdname } }
 }
 
 impl BytesSerializable for NsdnameBytes {
@@ -42,8 +48,13 @@ impl BytesSerializable for NsdnameBytes {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub struct PtrBytes {
     ptrdname: DomainName,
+}
+
+impl PtrBytes {
+    pub fn new(ptrdname: DomainName) -> Self { Self { ptrdname } }
 }
 
 impl BytesSerializable for PtrBytes {
@@ -65,6 +76,7 @@ impl BytesSerializable for PtrBytes {
 /// occur when the RRs are copied into the response and not when the zone is loaded from a master file or via a
 /// zone transfer. The reason for this provison is to allow future dynamic update facilities to change the SOA
 /// RR with known semantics.
+#[derive(Debug, PartialEq)]
 pub struct SoaBytes {
     /// The <domain-name> of the name server that was the original or primary source of data for this zone.
     mname: DomainName,
@@ -133,6 +145,7 @@ impl BytesSerializable for SoaBytes {
 }
 
 /// TXT RRs are used to hold descriptive text. The semantics of the text depends on the domain where it is found.
+#[derive(Debug, PartialEq)]
 pub struct TxtBytes {
     /// One or more <character-string>s.
     txt_data: Vec<CharacterString>,
