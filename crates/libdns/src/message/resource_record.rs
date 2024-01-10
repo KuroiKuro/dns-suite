@@ -395,4 +395,56 @@ mod tests {
         assert_eq!(rr.ttl, expected_ttl);
         assert_eq!(rr.rdata, Rdata::Ptr(expected_ptr));
     }
+
+    #[test]
+    fn test_resource_record_cname_to_bytes() {
+        let cname_domain = "cname.example.com";
+        let cname_domain_name = DomainName::try_from(cname_domain).unwrap();
+        let cname = CnameBytes::new(cname_domain_name);
+        let cname_bytes = cname.to_bytes();
+        let rdlength = cname_bytes.len();
+        let rdata = Rdata::Cname(cname);
+
+        let name = DomainName::try_from(EXAMPLE_DOMAIN).unwrap();
+        let r#type = ResourceRecordType::Cname;
+        let class = ResourceRecordClass::In;
+        let ttl = 21274;
+
+        // Create expected bytes
+        let mut expected_bytes = create_expected_bytes(&name, r#type, class, ttl, rdlength);
+        expected_bytes.extend(cname_bytes);
+
+        let rr = ResourceRecord::new(name, r#type, class, ttl, rdata);
+        let bytes = rr.to_bytes();
+        assert_eq!(bytes, expected_bytes);
+    }
+
+    #[test]
+    fn test_resource_record_cname_parse() {
+        // Add bytes for `ns` label in `ns.example.com`
+        let mut bytes_to_parse = Vec::from(EXAMPLE_DOMAIN_BYTES);
+        let expected_rr_type = ResourceRecordType::Cname;
+        let expected_rr_class = ResourceRecordClass::In;
+        let expected_ttl: i32 = 86400;
+        let expected_domain = DomainName::try_from(EXAMPLE_DOMAIN).unwrap();
+
+        let cname_domain = "cname.example.com";
+        let expected_cname_domain = DomainName::try_from(cname_domain).unwrap();
+        let expected_cname = CnameBytes::new(expected_cname_domain);
+        let expected_cname_bytes = expected_cname.to_bytes();
+
+        bytes_to_parse.extend((expected_rr_type as u16).to_be_bytes());
+        bytes_to_parse.extend((expected_rr_class as u16).to_be_bytes());
+        bytes_to_parse.extend(expected_ttl.to_be_bytes());
+        bytes_to_parse.extend((expected_cname_bytes.len() as u16).to_be_bytes());
+        bytes_to_parse.extend(expected_cname.to_bytes());
+
+        let (rr, remaining_bytes) = ResourceRecord::parse(&bytes_to_parse).unwrap();
+        assert!(remaining_bytes.is_empty());
+        assert_eq!(rr.name, expected_domain);
+        assert_eq!(rr.r#type, expected_rr_type);
+        assert_eq!(rr.class, expected_rr_class);
+        assert_eq!(rr.ttl, expected_ttl);
+        assert_eq!(rr.rdata, Rdata::Cname(expected_cname));
+    }
 }

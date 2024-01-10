@@ -17,6 +17,10 @@ pub struct CnameBytes {
     cname: DomainName,
 }
 
+impl CnameBytes {
+    pub fn new(cname: DomainName) -> Self { Self { cname } }
+}
+
 impl BytesSerializable for CnameBytes {
     fn to_bytes(&self) -> Vec<u8> {
         self.cname.to_bytes()
