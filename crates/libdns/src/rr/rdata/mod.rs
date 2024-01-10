@@ -18,7 +18,9 @@ pub struct CnameBytes {
 }
 
 impl CnameBytes {
-    pub fn new(cname: DomainName) -> Self { Self { cname } }
+    pub fn new(cname: DomainName) -> Self {
+        Self { cname }
+    }
 }
 
 impl BytesSerializable for CnameBytes {
@@ -38,7 +40,9 @@ pub struct NsdnameBytes {
 }
 
 impl NsdnameBytes {
-    pub fn new(nsdname: DomainName) -> Self { Self { nsdname } }
+    pub fn new(nsdname: DomainName) -> Self {
+        Self { nsdname }
+    }
 }
 
 impl BytesSerializable for NsdnameBytes {
@@ -58,7 +62,9 @@ pub struct PtrBytes {
 }
 
 impl PtrBytes {
-    pub fn new(ptrdname: DomainName) -> Self { Self { ptrdname } }
+    pub fn new(ptrdname: DomainName) -> Self {
+        Self { ptrdname }
+    }
 }
 
 impl BytesSerializable for PtrBytes {
@@ -101,7 +107,25 @@ pub struct SoaBytes {
 }
 
 impl SoaBytes {
-    pub fn new(mname: DomainName, rname: DomainName, serial: u32, refresh: u32, retry: u32, expire: u32, minimum: u32) -> Self { Self { mname, rname, serial: Wrapping(serial), refresh, retry, expire, minimum } }
+    pub fn new(
+        mname: DomainName,
+        rname: DomainName,
+        serial: u32,
+        refresh: u32,
+        retry: u32,
+        expire: u32,
+        minimum: u32,
+    ) -> Self {
+        Self {
+            mname,
+            rname,
+            serial: Wrapping(serial),
+            refresh,
+            retry,
+            expire,
+            minimum,
+        }
+    }
 }
 
 impl BytesSerializable for SoaBytes {

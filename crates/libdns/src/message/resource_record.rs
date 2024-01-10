@@ -217,9 +217,8 @@ mod tests {
 
     use super::*;
 
-    const EXAMPLE_DOMAIN_BYTES: [u8; 13] = [
-        7, 101, 120, 97, 109, 112, 108, 101, 3, 99, 111, 109, 0
-    ];
+    const EXAMPLE_DOMAIN_BYTES: [u8; 13] =
+        [7, 101, 120, 97, 109, 112, 108, 101, 3, 99, 111, 109, 0];
     const EXAMPLE_DOMAIN: &str = "example.com";
 
     /// Create the expected bytes for the initial section of the resource record, which is common across all of the testing
@@ -274,7 +273,8 @@ mod tests {
         let expected_domain = DomainName::try_from(EXAMPLE_DOMAIN).unwrap();
 
         let octets = [100, 201, 192, 61];
-        let expected_ardata = ARdata::new(Ipv4Addr::new(octets[0], octets[1], octets[2], octets[3]));
+        let expected_ardata =
+            ARdata::new(Ipv4Addr::new(octets[0], octets[1], octets[2], octets[3]));
         let expected_ardata_bytes = expected_ardata.to_bytes();
 
         bytes_to_parse.extend((expected_rr_type as u16).to_be_bytes());
@@ -460,7 +460,15 @@ mod tests {
         let expire = 1814400;
         let minimum = 600;
 
-        let soa = SoaBytes::new(maname_domain, rname_domain, serial, refresh, retry, expire, minimum);
+        let soa = SoaBytes::new(
+            maname_domain,
+            rname_domain,
+            serial,
+            refresh,
+            retry,
+            expire,
+            minimum,
+        );
         let soa_bytes = soa.to_bytes();
         let rdlength = soa_bytes.len();
         let rdata = Rdata::Soa(soa);
@@ -497,9 +505,17 @@ mod tests {
         let retry = 300;
         let expire = 1814400;
         let minimum = 600;
-        let expected_soa = SoaBytes::new(maname_domain, rname_domain, serial, refresh, retry, expire, minimum);
+        let expected_soa = SoaBytes::new(
+            maname_domain,
+            rname_domain,
+            serial,
+            refresh,
+            retry,
+            expire,
+            minimum,
+        );
         let expected_soa_bytes = expected_soa.to_bytes();
-        
+
         bytes_to_parse.extend((expected_rr_type as u16).to_be_bytes());
         bytes_to_parse.extend((expected_rr_class as u16).to_be_bytes());
         bytes_to_parse.extend(expected_ttl.to_be_bytes());

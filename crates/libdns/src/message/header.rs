@@ -5,7 +5,7 @@ use crate::{
 
 use super::{MessageType, QueryOpcode, ResponseCode};
 use itertools::Itertools;
-use nom::{IResult};
+use nom::IResult;
 use rand::random;
 use thiserror::Error;
 
