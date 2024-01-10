@@ -100,6 +100,10 @@ pub struct SoaBytes {
     minimum: u32,
 }
 
+impl SoaBytes {
+    pub fn new(mname: DomainName, rname: DomainName, serial: u32, refresh: u32, retry: u32, expire: u32, minimum: u32) -> Self { Self { mname, rname, serial: Wrapping(serial), refresh, retry, expire, minimum } }
+}
+
 impl BytesSerializable for SoaBytes {
     fn to_bytes(&self) -> Vec<u8> {
         [&self.mname, &self.rname]
