@@ -6,7 +6,7 @@ use thiserror::Error;
 
 use crate::{
     types::DomainPointer, BytesSerializable, CompressedBytesSerializable, LabelMap, ParseDataError,
-    SerializeCompressedResult, MessageOffset,
+    SerializeCompressedOutcome, MessageOffset,
 };
 
 use super::{DomainLabel, DomainLabelValidationError};
@@ -133,7 +133,7 @@ impl CompressedBytesSerializable for DomainName {
         &self,
         base_offset: u16,
         label_map: &mut LabelMap,
-    ) -> SerializeCompressedResult {
+    ) -> SerializeCompressedOutcome {
         // We need to check if the labels exist first before inserting into the map, otherwise we will always
         // get a domain pointer even when the labels were inserted for the first time in this function call
         let (compressed_bytes, new_offset) = {
@@ -173,7 +173,7 @@ impl CompressedBytesSerializable for DomainName {
         };
 
         label_map.insert(&self.domain_labels, base_offset);
-        SerializeCompressedResult {
+        SerializeCompressedOutcome {
             compressed_bytes,
             new_offset,
         }

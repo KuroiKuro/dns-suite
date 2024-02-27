@@ -1,7 +1,7 @@
 use itertools::Itertools;
 
 use crate::{
-    domain::DomainName, rr::{Qtype, ResourceRecordQClass}, BytesSerializable, CompressedBytesSerializable, MessageOffset, ParseDataError, SerializeCompressedResult
+    domain::DomainName, rr::{Qtype, ResourceRecordQClass}, BytesSerializable, CompressedBytesSerializable, MessageOffset, ParseDataError, SerializeCompressedOutcome
 };
 
 /// A struct depicting a question in a DNS message. The question section in the messsage
@@ -58,7 +58,7 @@ impl CompressedBytesSerializable for Question {
         &self,
         base_offset: u16,
         label_map: &mut crate::LabelMap,
-    ) -> SerializeCompressedResult {
+    ) -> SerializeCompressedOutcome {
         let result = self.qname.to_bytes_compressed(base_offset, label_map);
         let compressed_bytes = result
             .compressed_bytes
@@ -69,7 +69,7 @@ impl CompressedBytesSerializable for Question {
 
         // Add 4 which is the number of bytes of qtype and qclass added together
         let new_offset = result.new_offset + 4;
-        SerializeCompressedResult {
+        SerializeCompressedOutcome {
             compressed_bytes,
             new_offset,
         }
@@ -116,7 +116,7 @@ impl CompressedBytesSerializable for MessageQuestions {
         &self,
         base_offset: u16,
         label_map: &mut crate::LabelMap,
-    ) -> SerializeCompressedResult {
+    ) -> SerializeCompressedOutcome {
         let mut rolling_offset = base_offset;
         let question_bytes = self
             .questions
@@ -127,7 +127,7 @@ impl CompressedBytesSerializable for MessageQuestions {
                 result.compressed_bytes
             })
             .collect_vec();
-        SerializeCompressedResult {
+        SerializeCompressedOutcome {
             compressed_bytes: question_bytes,
             new_offset: rolling_offset,
         }

@@ -147,8 +147,7 @@ pub trait BytesSerializable {
 
 /// The return result type of the `to_bytes_compressed` method of the
 /// `CompressedBytesSerializable` trait
-pub struct SerializeCompressedResult {
-    // TODO! RENAME TO SerializeCompressedOutcome
+pub struct SerializeCompressedOutcome {
     compressed_bytes: Vec<u8>,
     new_offset: MessageOffset,
 }
@@ -165,7 +164,7 @@ pub trait CompressedBytesSerializable {
         &self,
         base_offset: u16,
         label_map: &mut LabelMap,
-    ) -> SerializeCompressedResult;
+    ) -> SerializeCompressedOutcome;
 
     /// Parse data that has been compressed. For this to work, we need to have the
     /// full message retrieved from the socket and loaded into memory. All calls
