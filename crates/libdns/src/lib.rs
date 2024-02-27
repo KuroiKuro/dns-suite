@@ -171,8 +171,8 @@ pub trait CompressedBytesSerializable {
     /// to this method will then access the same message in memory, which is safe
     /// as parsing operations are read only. This access pattern is advantageous
     /// because it avoids unnecessary copies.
-    fn parse_compressed<'a>(
-        full_message_bytes: &'a [u8],
+    fn parse_compressed(
+        full_message_bytes: &[u8],
         current_offset: MessageOffset,
     ) -> Result<(Self, MessageOffset), ParseDataError>
     where

@@ -5,8 +5,8 @@ use itertools::Itertools;
 use thiserror::Error;
 
 use crate::{
-    types::DomainPointer, BytesSerializable, CompressedBytesSerializable, LabelMap, ParseDataError,
-    SerializeCompressedOutcome, MessageOffset,
+    types::DomainPointer, BytesSerializable, CompressedBytesSerializable, LabelMap, MessageOffset,
+    ParseDataError, SerializeCompressedOutcome,
 };
 
 use super::{DomainLabel, DomainLabelValidationError};
@@ -34,7 +34,9 @@ pub struct DomainName {
 
 impl DomainName {
     pub fn new(labels: Vec<DomainLabel>) -> Self {
-        Self { domain_labels: labels }
+        Self {
+            domain_labels: labels,
+        }
     }
 
     pub fn labels(&self) -> &[DomainLabel] {
@@ -42,7 +44,9 @@ impl DomainName {
     }
 
     pub fn from_label(labels: Vec<DomainLabel>) -> Self {
-        Self { domain_labels: labels }
+        Self {
+            domain_labels: labels,
+        }
     }
 }
 
@@ -190,16 +194,14 @@ impl CompressedBytesSerializable for DomainName {
         // be parsed, we will try to parse a domain pointer to use for a lookup on the label map. If the
         // lookup cannot be found, there is an error with parsing it so we return an `Err`, otherwise we
         // will combine the parsed labels with the labels in the lookup.
-        // 
+        //
         // If there are no domain pointers, the method will work exactly the same as `to_bytes`
         let mut domain_labels: Vec<DomainLabel> = Vec::new();
         let mut new_offset = base_offset;
         loop {
-
             let bytes_to_parse = &full_message_bytes[(new_offset as usize)..];
 
             if let Ok((ptr, _)) = DomainPointer::parse(bytes_to_parse) {
-
                 let ptr_location = &full_message_bytes[(ptr.offset() as usize)..];
 
                 // Should not have an error here, if there is then the pointer is pointing to an invalid location
@@ -207,15 +209,13 @@ impl CompressedBytesSerializable for DomainName {
                     Ok((domain, _)) => domain_labels.extend_from_slice(domain.labels()),
                     Err(_) => return Err(ParseDataError::InvalidDomainPointer),
                 };
-                
+
                 // After parsing the labels from the pointer, the domain parsing is completed so we
                 // can return early
                 let domain_name = DomainName::new(domain_labels);
                 new_offset += DomainPointer::SIZE;
                 return Ok((domain_name, new_offset));
-
             } else {
-
                 // If it is a domain label instead of pointer, then we continue processing normally
                 let (domain_label, _) = match DomainLabel::parse(bytes_to_parse) {
                     Ok(d) => d,
@@ -385,7 +385,8 @@ mod tests {
         let outcome = original_domain.to_bytes_compressed(offset, &mut label_map);
         let compressed_message = outcome.compressed_bytes;
 
-        let (parsed_domain, new_offset) = DomainName::parse_compressed(&compressed_message, offset).unwrap();
+        let (parsed_domain, new_offset) =
+            DomainName::parse_compressed(&compressed_message, offset).unwrap();
         assert_eq!(original_domain, parsed_domain);
         assert_eq!(outcome.new_offset, new_offset);
     }
