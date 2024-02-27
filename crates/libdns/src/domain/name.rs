@@ -6,7 +6,7 @@ use thiserror::Error;
 
 use crate::{
     types::DomainPointer, BytesSerializable, CompressedBytesSerializable, LabelMap, ParseDataError,
-    SerializeCompressedResult,
+    SerializeCompressedResult, MessageOffset,
 };
 
 use super::{DomainLabel, DomainLabelValidationError};
@@ -33,8 +33,16 @@ pub struct DomainName {
 }
 
 impl DomainName {
+    pub fn new(labels: Vec<DomainLabel>) -> Self {
+        Self { domain_labels: labels }
+    }
+
     pub fn labels(&self) -> &[DomainLabel] {
         &self.domain_labels
+    }
+
+    pub fn from_label(labels: Vec<DomainLabel>) -> Self {
+        Self { domain_labels: labels }
     }
 }
 
@@ -102,7 +110,6 @@ impl BytesSerializable for DomainName {
     fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
         let mut domain_labels: Vec<DomainLabel> = Vec::new();
         let mut remaining: &[u8] = bytes;
-        // while let Ok((label, remaining)) = DomainLabel::parse(bytes) {
         loop {
             let (label, r) = match DomainLabel::parse(remaining) {
                 Ok(l) => l,
@@ -172,15 +179,61 @@ impl CompressedBytesSerializable for DomainName {
         }
     }
 
-    fn parse_compressed<'a>(
-        _bytes: &'a [u8],
-        _base_offset: u16,
-        _label_map: &mut LabelMap,
-    ) -> (Result<(Self, &'a [u8]), ParseDataError>, u16)
+    fn parse_compressed(
+        full_message_bytes: &[u8],
+        base_offset: MessageOffset,
+    ) -> Result<(Self, MessageOffset), ParseDataError>
     where
         Self: std::marker::Sized,
     {
-        todo!()
+        // Continuously try to parse domain labels from the given bytes. Whenever a domain label cannot
+        // be parsed, we will try to parse a domain pointer to use for a lookup on the label map. If the
+        // lookup cannot be found, there is an error with parsing it so we return an `Err`, otherwise we
+        // will combine the parsed labels with the labels in the lookup.
+        // 
+        // If there are no domain pointers, the method will work exactly the same as `to_bytes`
+        let mut domain_labels: Vec<DomainLabel> = Vec::new();
+        let mut new_offset = base_offset;
+        loop {
+
+            let bytes_to_parse = &full_message_bytes[(new_offset as usize)..];
+
+            if let Ok((ptr, _)) = DomainPointer::parse(bytes_to_parse) {
+
+                let ptr_location = &full_message_bytes[(ptr.offset() as usize)..];
+
+                // Should not have an error here, if there is then the pointer is pointing to an invalid location
+                match DomainName::parse(ptr_location) {
+                    Ok((domain, _)) => domain_labels.extend_from_slice(domain.labels()),
+                    Err(_) => return Err(ParseDataError::InvalidDomainPointer),
+                };
+                
+                // After parsing the labels from the pointer, the domain parsing is completed so we
+                // can return early
+                let domain_name = DomainName::new(domain_labels);
+                new_offset += DomainPointer::SIZE;
+                return Ok((domain_name, new_offset));
+
+            } else {
+
+                // If it is a domain label instead of pointer, then we continue processing normally
+                let (domain_label, _) = match DomainLabel::parse(bytes_to_parse) {
+                    Ok(d) => d,
+                    _ => return Err(ParseDataError::InvalidByteStructure),
+                };
+
+                new_offset += domain_label.len_bytes() as u16;
+                // The last label has been parsed if it is an empty label, so we will need to break
+                let is_final_label = domain_label.is_empty();
+                domain_labels.push(domain_label);
+
+                if is_final_label {
+                    break;
+                }
+            }
+        }
+
+        Ok((DomainName::from_label(domain_labels), new_offset))
     }
 }
 
@@ -321,5 +374,19 @@ mod tests {
 
         let result = DomainName::parse(&bytes);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_domain_name_parse_compressed() {
+        // Create a compressed domain name
+        let mut label_map = LabelMap::new();
+        let offset = 0;
+        let original_domain = DomainName::try_from("chat.openai.com").unwrap();
+        let outcome = original_domain.to_bytes_compressed(offset, &mut label_map);
+        let compressed_message = outcome.compressed_bytes;
+
+        let (parsed_domain, new_offset) = DomainName::parse_compressed(&compressed_message, offset).unwrap();
+        assert_eq!(original_domain, parsed_domain);
+        assert_eq!(outcome.new_offset, new_offset);
     }
 }

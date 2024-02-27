@@ -32,14 +32,12 @@ pub struct LabelMapInsertOutcome {
 
 pub struct LabelMap {
     label_to_offset_map: HashMap<Vec<DomainLabel>, MessageOffset>,
-    offset_to_label_map: HashMap<MessageOffset, Vec<DomainLabel>>,
 }
 
 impl LabelMap {
     pub fn new() -> Self {
         Self {
             label_to_offset_map: HashMap::new(),
-            offset_to_label_map: HashMap::new(),
         }
     }
 
@@ -67,6 +65,7 @@ impl LabelMap {
         None
     }
 
+    /// Get the offset from a set of labels
     pub fn get_offset(&self, labels: &[DomainLabel]) -> Option<&MessageOffset> {
         self.label_to_offset_map.get(&labels.to_vec())
     }
@@ -100,6 +99,7 @@ impl LabelMap {
                     break;
                 }
                 Entry::Vacant(entry) => {
+                    // self.offset_to_label_map.insert(current_offset, entry.key().clone());
                     entry.insert(current_offset);
                     inserted_records += 1;
                     current_offset += domain_labels[i].len_bytes() as u16;
@@ -115,7 +115,6 @@ impl LabelMap {
 
     pub fn clear(&mut self) {
         self.label_to_offset_map.clear();
-        self.offset_to_label_map.clear();
     }
 }
 
@@ -149,8 +148,9 @@ pub trait BytesSerializable {
 /// The return result type of the `to_bytes_compressed` method of the
 /// `CompressedBytesSerializable` trait
 pub struct SerializeCompressedResult {
+    // TODO! RENAME TO SerializeCompressedOutcome
     compressed_bytes: Vec<u8>,
-    new_offset: u16,
+    new_offset: MessageOffset,
 }
 
 /// A trait for types that can serialize and parse their data in bytes that are
@@ -166,11 +166,16 @@ pub trait CompressedBytesSerializable {
         base_offset: u16,
         label_map: &mut LabelMap,
     ) -> SerializeCompressedResult;
+
+    /// Parse data that has been compressed. For this to work, we need to have the
+    /// full message retrieved from the socket and loaded into memory. All calls
+    /// to this method will then access the same message in memory, which is safe
+    /// as parsing operations are read only. This access pattern is advantageous
+    /// because it avoids unnecessary copies.
     fn parse_compressed<'a>(
-        bytes: &'a [u8],
-        base_offset: u16,
-        label_map: &mut LabelMap,
-    ) -> (Result<(Self, &'a [u8]), ParseDataError>, u16)
+        full_message_bytes: &'a [u8],
+        current_offset: MessageOffset,
+    ) -> Result<(Self, MessageOffset), ParseDataError>
     where
         Self: std::marker::Sized;
 }

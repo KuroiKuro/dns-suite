@@ -1,9 +1,7 @@
 use itertools::Itertools;
 
 use crate::{
-    domain::DomainName,
-    rr::{Qtype, ResourceRecordQClass},
-    BytesSerializable, CompressedBytesSerializable, ParseDataError, SerializeCompressedResult,
+    domain::DomainName, rr::{Qtype, ResourceRecordQClass}, BytesSerializable, CompressedBytesSerializable, MessageOffset, ParseDataError, SerializeCompressedResult
 };
 
 /// A struct depicting a question in a DNS message. The question section in the messsage
@@ -78,13 +76,11 @@ impl CompressedBytesSerializable for Question {
     }
 
     fn parse_compressed<'a>(
-        _bytes: &'a [u8],
-        _base_offset: u16,
-        _label_map: &mut crate::LabelMap,
-    ) -> (Result<(Self, &'a [u8]), ParseDataError>, u16)
+        full_message_bytes: &'a [u8],
+        base_offset: crate::MessageOffset,
+    ) -> Result<(Self, crate::MessageOffset), ParseDataError>
     where
-        Self: std::marker::Sized,
-    {
+        Self: std::marker::Sized {
         todo!()
     }
 }
@@ -137,11 +133,10 @@ impl CompressedBytesSerializable for MessageQuestions {
         }
     }
 
-    fn parse_compressed<'a>(
-        _bytes: &'a [u8],
-        _base_offset: u16,
-        _label_map: &mut crate::LabelMap,
-    ) -> (Result<(Self, &'a [u8]), ParseDataError>, u16)
+    fn parse_compressed(
+        _full_message_bytes: &[u8],
+        _base_offset: MessageOffset,
+    ) -> Result<(Self, MessageOffset), ParseDataError>
     where
         Self: std::marker::Sized,
     {

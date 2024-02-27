@@ -110,6 +110,10 @@ impl DomainPointer {
     pub fn new(offset: u16) -> Self {
         Self { offset }
     }
+
+    pub fn offset(&self) -> u16 {
+        self.offset
+    }
 }
 
 impl BytesSerializable for DomainPointer {
