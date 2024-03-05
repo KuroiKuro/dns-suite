@@ -1,17 +1,14 @@
 use itertools::Itertools;
 
 use crate::{
-    domain::DomainName,
-    rr::{Qtype, ResourceRecordQClass},
-    BytesSerializable, CompressedBytesSerializable, MessageOffset, ParseDataError,
-    SerializeCompressedOutcome,
+    domain::DomainName, parse_utils::parse_u16, rr::{Qtype, ResourceRecordQClass}, BytesSerializable, CompressedBytesSerializable, MessageOffset, ParseDataError, SerializeCompressedOutcome
 };
 
 /// A struct depicting a question in a DNS message. The question section in the messsage
 /// can contain multiple questions, all represented by individual `Question` instances.
 /// This means that a DNS message with 2 questions will contain 2 `Question` instances
 /// packed into bytes
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Question {
     qname: DomainName,
     qtype: Qtype,
@@ -48,11 +45,18 @@ impl BytesSerializable for Question {
         [qname, qtype, qclass].into_iter().flatten().collect_vec()
     }
 
-    fn parse(_bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError>
+    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError>
     where
         Self: std::marker::Sized,
     {
-        todo!()
+        let (qname, remaining_input) = DomainName::parse(bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
+
+        let (remaining_input, qtype_bytes) = parse_u16(remaining_input).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let qtype = Qtype::try_from(qtype_bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
+
+        let (remaining_input, qclass_bytes) = parse_u16(remaining_input).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let qclass = ResourceRecordQClass::try_from(qclass_bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        Ok((Self::new(qname, qtype, qclass), remaining_input))
     }
 }
 
@@ -107,7 +111,7 @@ impl BytesSerializable for MessageQuestions {
             .collect_vec()
     }
 
-    fn parse(_bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError>
+    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError>
     where
         Self: std::marker::Sized,
     {
@@ -322,5 +326,19 @@ mod tests {
         let result = questions.to_bytes_compressed(offset, &mut label_map);
         assert_eq!(result.compressed_bytes, expected_bytes);
         assert_eq!(result.new_offset, 61);
+    }
+
+    #[test]
+    fn test_question_parse() {
+        let qname = DomainName::try_from("example.net").unwrap();
+        let qtype = Qtype::A;
+        let qclass = ResourceRecordQClass::In;
+
+        let question = Question::new(qname, qtype, qclass);
+        let question_bytes = question.to_bytes();
+
+        let (parsed_question, remaining_input) = Question::parse(&question_bytes).unwrap();
+        assert_eq!(parsed_question, question);
+        assert_eq!(remaining_input.len(), 0);
     }
 }
