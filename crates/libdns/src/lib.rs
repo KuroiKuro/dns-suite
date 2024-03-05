@@ -139,8 +139,16 @@ pub enum ParseDataError {
 
 /// A trait for types that can serialize and parse their data with bytes
 pub trait BytesSerializable {
+    /// Implemented for types that can serialize their contents into bytes
     fn to_bytes(&self) -> Vec<u8>;
-    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError>
+    /// Implemented for types that can parse bytes and deserialize it into
+    /// struct instances. The `parse_count` argument dictates how many
+    /// instances should be parsed, which is useful for types that are
+    /// essentially a wrapper for `Vec`s of another `BytesSerializable`
+    /// type and know how many instances should be parsed exactly. This
+    /// can happen if the number of instances is already encoded somwhere
+    /// in the full DNS message
+    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError>
     where
         Self: std::marker::Sized;
 }

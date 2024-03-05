@@ -28,8 +28,8 @@ impl BytesSerializable for CnameBytes {
         self.cname.to_bytes()
     }
 
-    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
-        let (cname, remaining_input) = DomainName::parse(bytes)?;
+    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
+        let (cname, remaining_input) = DomainName::parse(bytes, None)?;
         Ok((Self { cname }, remaining_input))
     }
 }
@@ -50,8 +50,8 @@ impl BytesSerializable for NsdnameBytes {
         self.nsdname.to_bytes()
     }
 
-    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
-        let (nsdname, remaining_input) = DomainName::parse(bytes)?;
+    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
+        let (nsdname, remaining_input) = DomainName::parse(bytes, None)?;
         Ok((Self { nsdname }, remaining_input))
     }
 }
@@ -72,8 +72,8 @@ impl BytesSerializable for PtrBytes {
         self.ptrdname.to_bytes()
     }
 
-    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
-        let (ptrdname, remaining_input) = DomainName::parse(bytes)?;
+    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
+        let (ptrdname, remaining_input) = DomainName::parse(bytes, None)?;
         Ok((Self { ptrdname }, remaining_input))
     }
 }
@@ -148,9 +148,9 @@ impl BytesSerializable for SoaBytes {
             .collect_vec()
     }
 
-    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
-        let (mname, remaining_input) = DomainName::parse(bytes)?;
-        let (rname, remaining_input) = DomainName::parse(remaining_input)?;
+    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
+        let (mname, remaining_input) = DomainName::parse(bytes, None)?;
+        let (rname, remaining_input) = DomainName::parse(remaining_input, None)?;
         let (remaining_input, serial) =
             parse_u32(remaining_input).map_err(|_| ParseDataError::InvalidByteStructure)?;
         let (remaining_input, refresh) =
@@ -197,10 +197,10 @@ impl BytesSerializable for TxtBytes {
             .collect_vec()
     }
 
-    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
+    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
         let mut bytes = bytes;
         let mut txt_data = Vec::new();
-        while let Ok((character_string, remaining_input)) = CharacterString::parse(bytes) {
+        while let Ok((character_string, remaining_input)) = CharacterString::parse(bytes, None) {
             txt_data.push(character_string);
             bytes = remaining_input;
         }
@@ -220,7 +220,7 @@ mod tests {
     fn test_parse_cname_bytes() {
         let domain = DomainName::try_from("bing.com").unwrap();
         let expected_bytes = domain.to_bytes();
-        let (cname, _) = CnameBytes::parse(&expected_bytes).unwrap();
+        let (cname, _) = CnameBytes::parse(&expected_bytes, None).unwrap();
         assert_eq!(cname.cname, domain);
     }
 
@@ -228,7 +228,7 @@ mod tests {
     fn test_parse_nsdname_bytes() {
         let domain = DomainName::try_from("stackoverflow.com").unwrap();
         let expected_bytes = domain.to_bytes();
-        let (nsdname, _) = NsdnameBytes::parse(&expected_bytes).unwrap();
+        let (nsdname, _) = NsdnameBytes::parse(&expected_bytes, None).unwrap();
         assert_eq!(nsdname.nsdname, domain);
     }
 
@@ -236,7 +236,7 @@ mod tests {
     fn test_parse_ptr_bytes() {
         let domain = DomainName::try_from("playground.net").unwrap();
         let expected_bytes = domain.to_bytes();
-        let (ptrdname, _) = PtrBytes::parse(&expected_bytes).unwrap();
+        let (ptrdname, _) = PtrBytes::parse(&expected_bytes, None).unwrap();
         assert_eq!(ptrdname.ptrdname, domain);
     }
 
@@ -292,7 +292,7 @@ mod tests {
         };
 
         let expected_bytes = soa.to_bytes();
-        let (parsed_soa, _) = SoaBytes::parse(&expected_bytes).unwrap();
+        let (parsed_soa, _) = SoaBytes::parse(&expected_bytes, None).unwrap();
         assert_eq!(parsed_soa.mname, mname);
         assert_eq!(parsed_soa.rname, rname);
         assert_eq!(parsed_soa.serial, serial);
@@ -335,7 +335,7 @@ mod tests {
         let charstr3 = CharacterString::try_from(AsciiString::from_str("defeat").unwrap()).unwrap();
 
         let bytes = charstr1.to_bytes();
-        let (txt_bytes, _) = TxtBytes::parse(&bytes).unwrap();
+        let (txt_bytes, _) = TxtBytes::parse(&bytes, None).unwrap();
         assert_eq!(txt_bytes.txt_data, vec![charstr1.clone()]);
 
         let bytes = bytes
@@ -344,7 +344,7 @@ mod tests {
             .chain(charstr3.to_bytes())
             .collect::<Vec<_>>();
 
-        let (txt_bytes, _) = TxtBytes::parse(&bytes).unwrap();
+        let (txt_bytes, _) = TxtBytes::parse(&bytes, None).unwrap();
         assert_eq!(txt_bytes.txt_data, vec![charstr1, charstr2, charstr3]);
     }
 }

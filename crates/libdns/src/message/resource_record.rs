@@ -39,28 +39,28 @@ impl Rdata {
     pub fn parse(r#type: ResourceRecordType, bytes: &[u8]) -> Option<Self> {
         match r#type {
             ResourceRecordType::A => {
-                let data = match ARdata::parse(bytes) {
+                let data = match ARdata::parse(bytes, None) {
                     Ok(d) => d.0,
                     Err(_) => return None,
                 };
                 Some(Self::A(data))
             }
             ResourceRecordType::Ns => {
-                let data = match NsdnameBytes::parse(bytes) {
+                let data = match NsdnameBytes::parse(bytes, None) {
                     Ok(d) => d.0,
                     _ => return None,
                 };
                 Some(Self::Ns(data))
             }
             ResourceRecordType::Cname => {
-                let data = match CnameBytes::parse(bytes) {
+                let data = match CnameBytes::parse(bytes, None) {
                     Ok(d) => d.0,
                     _ => return None,
                 };
                 Some(Self::Cname(data))
             }
             ResourceRecordType::Soa => {
-                let data = match SoaBytes::parse(bytes) {
+                let data = match SoaBytes::parse(bytes, None) {
                     Ok(d) => d.0,
                     _ => return None,
                 };
@@ -68,7 +68,7 @@ impl Rdata {
             }
             // ResourceRecordType::Wks => todo!(),
             ResourceRecordType::Ptr => {
-                let data = match PtrBytes::parse(bytes) {
+                let data = match PtrBytes::parse(bytes, None) {
                     Ok(d) => d.0,
                     _ => return None,
                 };
@@ -77,7 +77,7 @@ impl Rdata {
             // ResourceRecordType::Hinfo => todo!(),
             // ResourceRecordType::Mx => todo!(),
             ResourceRecordType::Txt => {
-                let data = match TxtBytes::parse(bytes) {
+                let data = match TxtBytes::parse(bytes, None) {
                     Ok(d) => d.0,
                     _ => return None,
                 };
@@ -165,11 +165,11 @@ impl BytesSerializable for ResourceRecord {
         bytes
     }
 
-    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError>
+    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError>
     where
         Self: std::marker::Sized,
     {
-        let (domain_name, remaining_input) = DomainName::parse(bytes)?;
+        let (domain_name, remaining_input) = DomainName::parse(bytes, None)?;
         let (remaining_input, parsed_type_bytes) =
             byte_parser(remaining_input, 2).map_err(|_| ParseDataError::InvalidByteStructure)?;
         let (_, type_data) =
@@ -286,7 +286,7 @@ mod tests {
         bytes_to_parse.extend((expected_ardata_bytes.len() as u16).to_be_bytes());
         bytes_to_parse.extend(expected_ardata.to_bytes());
 
-        let (rr, remaining_bytes) = ResourceRecord::parse(&bytes_to_parse).unwrap();
+        let (rr, remaining_bytes) = ResourceRecord::parse(&bytes_to_parse, None).unwrap();
         assert!(remaining_bytes.is_empty());
         assert_eq!(rr.name, expected_domain);
         assert_eq!(rr.r#type, expected_rr_type);
@@ -338,7 +338,7 @@ mod tests {
         bytes_to_parse.extend((expected_ns_bytes.len() as u16).to_be_bytes());
         bytes_to_parse.extend(expected_ns.to_bytes());
 
-        let (rr, remaining_bytes) = ResourceRecord::parse(&bytes_to_parse).unwrap();
+        let (rr, remaining_bytes) = ResourceRecord::parse(&bytes_to_parse, None).unwrap();
         assert!(remaining_bytes.is_empty());
         assert_eq!(rr.name, expected_domain);
         assert_eq!(rr.r#type, expected_rr_type);
@@ -390,7 +390,7 @@ mod tests {
         bytes_to_parse.extend((expected_ptr_bytes.len() as u16).to_be_bytes());
         bytes_to_parse.extend(expected_ptr.to_bytes());
 
-        let (rr, remaining_bytes) = ResourceRecord::parse(&bytes_to_parse).unwrap();
+        let (rr, remaining_bytes) = ResourceRecord::parse(&bytes_to_parse, None).unwrap();
         assert!(remaining_bytes.is_empty());
         assert_eq!(rr.name, expected_domain);
         assert_eq!(rr.r#type, expected_rr_type);
@@ -442,7 +442,7 @@ mod tests {
         bytes_to_parse.extend((expected_cname_bytes.len() as u16).to_be_bytes());
         bytes_to_parse.extend(expected_cname.to_bytes());
 
-        let (rr, remaining_bytes) = ResourceRecord::parse(&bytes_to_parse).unwrap();
+        let (rr, remaining_bytes) = ResourceRecord::parse(&bytes_to_parse, None).unwrap();
         assert!(remaining_bytes.is_empty());
         assert_eq!(rr.name, expected_domain);
         assert_eq!(rr.r#type, expected_rr_type);
@@ -525,7 +525,7 @@ mod tests {
         bytes_to_parse.extend((expected_soa_bytes.len() as u16).to_be_bytes());
         bytes_to_parse.extend(expected_soa.to_bytes());
 
-        let (rr, remaining_bytes) = ResourceRecord::parse(&bytes_to_parse).unwrap();
+        let (rr, remaining_bytes) = ResourceRecord::parse(&bytes_to_parse, None).unwrap();
         assert!(remaining_bytes.is_empty());
         assert_eq!(rr.name, expected_domain);
         assert_eq!(rr.r#type, expected_rr_type);
@@ -581,7 +581,7 @@ mod tests {
         bytes_to_parse.extend((expected_txt_bytes.len() as u16).to_be_bytes());
         bytes_to_parse.extend(expected_txt.to_bytes());
 
-        let (rr, remaining_bytes) = ResourceRecord::parse(&bytes_to_parse).unwrap();
+        let (rr, remaining_bytes) = ResourceRecord::parse(&bytes_to_parse, None).unwrap();
         assert!(remaining_bytes.is_empty());
         assert_eq!(rr.name, expected_domain);
         assert_eq!(rr.r#type, expected_rr_type);

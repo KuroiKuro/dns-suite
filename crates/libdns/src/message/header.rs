@@ -187,7 +187,7 @@ impl BytesSerializable for Header {
         .collect_vec()
     }
 
-    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
+    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
         let (bytes, id) = parse_u16(bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
 
         let (bytes_with_offset, qr) =
@@ -551,7 +551,7 @@ mod tests {
             0,
             0,
         ];
-        let (header, _) = Header::parse(&header_bytes).unwrap();
+        let (header, _) = Header::parse(&header_bytes, None).unwrap();
         assert_eq!(header.id, 0x90CB);
         assert_eq!(header.qr, MessageType::Question);
         assert_eq!(header.opcode, QueryOpcode::Query);
@@ -586,7 +586,7 @@ mod tests {
             0,
             0,
         ];
-        let (header, _) = Header::parse(&header_bytes).unwrap();
+        let (header, _) = Header::parse(&header_bytes, None).unwrap();
         assert_eq!(header.id, 0x2BA2);
         assert_eq!(header.qr, MessageType::Answer);
         assert_eq!(header.opcode, QueryOpcode::Query);

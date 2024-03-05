@@ -45,11 +45,11 @@ impl BytesSerializable for Question {
         [qname, qtype, qclass].into_iter().flatten().collect_vec()
     }
 
-    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError>
+    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError>
     where
         Self: std::marker::Sized,
     {
-        let (qname, remaining_input) = DomainName::parse(bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (qname, remaining_input) = DomainName::parse(bytes, None).map_err(|_| ParseDataError::InvalidByteStructure)?;
 
         let (remaining_input, qtype_bytes) = parse_u16(remaining_input).map_err(|_| ParseDataError::InvalidByteStructure)?;
         let qtype = Qtype::try_from(qtype_bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
@@ -111,7 +111,7 @@ impl BytesSerializable for MessageQuestions {
             .collect_vec()
     }
 
-    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError>
+    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError>
     where
         Self: std::marker::Sized,
     {
@@ -337,7 +337,7 @@ mod tests {
         let question = Question::new(qname, qtype, qclass);
         let question_bytes = question.to_bytes();
 
-        let (parsed_question, remaining_input) = Question::parse(&question_bytes).unwrap();
+        let (parsed_question, remaining_input) = Question::parse(&question_bytes, None).unwrap();
         assert_eq!(parsed_question, question);
         assert_eq!(remaining_input.len(), 0);
     }

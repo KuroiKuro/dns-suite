@@ -111,11 +111,11 @@ impl BytesSerializable for DomainName {
     }
 
     /// Pass in a byte-serialized sequence of labels
-    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
+    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
         let mut domain_labels: Vec<DomainLabel> = Vec::new();
         let mut remaining: &[u8] = bytes;
         loop {
-            let (label, r) = match DomainLabel::parse(remaining) {
+            let (label, r) = match DomainLabel::parse(remaining, None) {
                 Ok(l) => l,
                 // There should be no parsing error here, because we should encounter
                 // the null terminating label first before parsing other data
@@ -201,11 +201,11 @@ impl CompressedBytesSerializable for DomainName {
         loop {
             let bytes_to_parse = &full_message_bytes[(new_offset as usize)..];
 
-            if let Ok((ptr, _)) = DomainPointer::parse(bytes_to_parse) {
+            if let Ok((ptr, _)) = DomainPointer::parse(bytes_to_parse, None) {
                 let ptr_location = &full_message_bytes[(ptr.offset() as usize)..];
 
                 // Should not have an error here, if there is then the pointer is pointing to an invalid location
-                match DomainName::parse(ptr_location) {
+                match DomainName::parse(ptr_location, None) {
                     Ok((domain, _)) => domain_labels.extend_from_slice(domain.labels()),
                     Err(_) => return Err(ParseDataError::InvalidDomainPointer),
                 };
@@ -217,7 +217,7 @@ impl CompressedBytesSerializable for DomainName {
                 return Ok((domain_name, new_offset));
             } else {
                 // If it is a domain label instead of pointer, then we continue processing normally
-                let (domain_label, _) = match DomainLabel::parse(bytes_to_parse) {
+                let (domain_label, _) = match DomainLabel::parse(bytes_to_parse, None) {
                     Ok(d) => d,
                     _ => return Err(ParseDataError::InvalidByteStructure),
                 };
@@ -353,7 +353,7 @@ mod tests {
             0,
         ];
 
-        let (domain_name, remaining) = DomainName::parse(&bytes).unwrap();
+        let (domain_name, remaining) = DomainName::parse(&bytes, None).unwrap();
         // 3 + 1 because of the null terminating label
         assert_eq!(domain_name.domain_labels.len(), 4);
         assert_eq!(remaining.len(), 0);
@@ -372,7 +372,7 @@ mod tests {
             AsciiChar::g as u8,
         ];
 
-        let result = DomainName::parse(&bytes);
+        let result = DomainName::parse(&bytes, None);
         assert!(result.is_err());
     }
 

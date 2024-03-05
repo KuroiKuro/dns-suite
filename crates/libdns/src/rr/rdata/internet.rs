@@ -23,7 +23,7 @@ impl BytesSerializable for ARdata {
         Vec::from(self.address.octets())
     }
 
-    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
+    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
         let (remaining_input, parsed_bytes) =
             byte_parser(bytes, 4).map_err(|_| ParseDataError::InvalidByteStructure)?;
         let ardata = Self {
@@ -55,7 +55,7 @@ mod tests {
     #[test]
     fn test_ardata_parse() {
         let bytes = [213, 12, 108, 95];
-        let (ardata, _) = ARdata::parse(&bytes).unwrap();
+        let (ardata, _) = ARdata::parse(&bytes, None).unwrap();
         let expected_addr = Ipv4Addr::new(bytes[0], bytes[1], bytes[2], bytes[3]);
         assert_eq!(ardata.address, expected_addr);
     }

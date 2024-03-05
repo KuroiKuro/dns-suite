@@ -76,7 +76,7 @@ impl BytesSerializable for CharacterString {
         bytes_repr
     }
 
-    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
+    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
         let (remaining_input, parsed) =
             byte_parser(bytes, 1).map_err(|_| ParseDataError::InvalidByteStructure)?;
         let len = parsed[0];
@@ -126,7 +126,7 @@ impl BytesSerializable for DomainPointer {
         data.to_be_bytes().to_vec()
     }
 
-    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError> {
+    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
         // let first_byte = bytes.first().unwrap();
         let (remaining_input, parsed) =
             bit_parser((bytes, 0), 2).map_err(|_| ParseDataError::InvalidByteStructure)?;
@@ -180,7 +180,7 @@ mod tests {
 
         let ascii_s = AsciiString::from_str("yellow").unwrap();
         let expected_label = CharacterString::try_from(ascii_s).unwrap();
-        let (domain_label, remaining) = CharacterString::parse(&bytes).unwrap();
+        let (domain_label, remaining) = CharacterString::parse(&bytes, None).unwrap();
         assert_eq!(domain_label, expected_label);
         assert_eq!(remaining.len(), 0);
     }
@@ -188,12 +188,12 @@ mod tests {
     #[test]
     fn test_parse_domain_pointer() {
         let domain_ptr_bytes: [u8; 2] = [0b1100_0000, 0b0000_0111];
-        let (domain_ptr, remaining_input) = DomainPointer::parse(&domain_ptr_bytes).unwrap();
+        let (domain_ptr, remaining_input) = DomainPointer::parse(&domain_ptr_bytes, None).unwrap();
         assert_eq!(domain_ptr.offset, 7);
         assert_eq!(remaining_input.len(), 0);
 
         let domain_ptr_bytes: [u8; 2] = [0b1100_1110, 0b1110_1011];
-        let (domain_ptr, remaining_input) = DomainPointer::parse(&domain_ptr_bytes).unwrap();
+        let (domain_ptr, remaining_input) = DomainPointer::parse(&domain_ptr_bytes, None).unwrap();
         assert_eq!(domain_ptr.offset, 3819);
         assert_eq!(remaining_input.len(), 0);
     }

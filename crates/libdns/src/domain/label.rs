@@ -159,7 +159,7 @@ impl BytesSerializable for DomainLabel {
         self.data.to_bytes()
     }
 
-    fn parse(bytes: &[u8]) -> Result<(Self, &[u8]), ParseDataError>
+    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError>
     where
         Self: std::marker::Sized,
     {
@@ -173,7 +173,7 @@ impl BytesSerializable for DomainLabel {
             }
             None => return Err(ParseDataError::EmptyData),
         }
-        let (data, remaining_input) = CharacterString::parse(bytes)?;
+        let (data, remaining_input) = CharacterString::parse(bytes, None)?;
         Ok((Self { data }, remaining_input))
     }
 }
@@ -235,17 +235,17 @@ mod tests {
         ];
 
         let expected_label = DomainLabel::try_from("white").unwrap();
-        let (domain_label, remaining) = DomainLabel::parse(&bytes).unwrap();
+        let (domain_label, remaining) = DomainLabel::parse(&bytes, None).unwrap();
         assert_eq!(domain_label, expected_label);
         assert_eq!(remaining.len(), 0);
 
         let bytes = [0];
-        let (domain_label, remaining) = DomainLabel::parse(&bytes).unwrap();
+        let (domain_label, remaining) = DomainLabel::parse(&bytes, None).unwrap();
         assert!(domain_label.is_empty());
         assert_eq!(remaining.len(), 0);
 
         let empty: [u8; 0] = [];
-        let result = DomainLabel::parse(&empty);
+        let result = DomainLabel::parse(&empty, None);
         assert!(result.is_err());
     }
 }
