@@ -159,7 +159,7 @@ impl BytesSerializable for DomainLabel {
         self.data.to_bytes()
     }
 
-    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError>
+    fn parse(bytes: &[u8], _parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError>
     where
         Self: std::marker::Sized,
     {

@@ -187,7 +187,7 @@ impl BytesSerializable for Header {
         .collect_vec()
     }
 
-    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
+    fn parse(bytes: &[u8], _parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
         let (bytes, id) = parse_u16(bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
 
         let (bytes_with_offset, qr) =

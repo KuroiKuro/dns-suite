@@ -28,7 +28,7 @@ impl BytesSerializable for CnameBytes {
         self.cname.to_bytes()
     }
 
-    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
+    fn parse(bytes: &[u8], _parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
         let (cname, remaining_input) = DomainName::parse(bytes, None)?;
         Ok((Self { cname }, remaining_input))
     }
@@ -50,7 +50,7 @@ impl BytesSerializable for NsdnameBytes {
         self.nsdname.to_bytes()
     }
 
-    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
+    fn parse(bytes: &[u8], _parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
         let (nsdname, remaining_input) = DomainName::parse(bytes, None)?;
         Ok((Self { nsdname }, remaining_input))
     }
@@ -72,7 +72,7 @@ impl BytesSerializable for PtrBytes {
         self.ptrdname.to_bytes()
     }
 
-    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
+    fn parse(bytes: &[u8], _parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
         let (ptrdname, remaining_input) = DomainName::parse(bytes, None)?;
         Ok((Self { ptrdname }, remaining_input))
     }
@@ -148,7 +148,7 @@ impl BytesSerializable for SoaBytes {
             .collect_vec()
     }
 
-    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
+    fn parse(bytes: &[u8], _parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
         let (mname, remaining_input) = DomainName::parse(bytes, None)?;
         let (rname, remaining_input) = DomainName::parse(remaining_input, None)?;
         let (remaining_input, serial) =
@@ -197,7 +197,7 @@ impl BytesSerializable for TxtBytes {
             .collect_vec()
     }
 
-    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
+    fn parse(bytes: &[u8], _parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
         let mut bytes = bytes;
         let mut txt_data = Vec::new();
         while let Ok((character_string, remaining_input)) = CharacterString::parse(bytes, None) {

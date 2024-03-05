@@ -111,7 +111,7 @@ impl BytesSerializable for DomainName {
     }
 
     /// Pass in a byte-serialized sequence of labels
-    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
+    fn parse(bytes: &[u8], _parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
         let mut domain_labels: Vec<DomainLabel> = Vec::new();
         let mut remaining: &[u8] = bytes;
         loop {

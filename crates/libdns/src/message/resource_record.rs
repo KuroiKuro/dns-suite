@@ -165,7 +165,7 @@ impl BytesSerializable for ResourceRecord {
         bytes
     }
 
-    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError>
+    fn parse(bytes: &[u8], _parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError>
     where
         Self: std::marker::Sized,
     {

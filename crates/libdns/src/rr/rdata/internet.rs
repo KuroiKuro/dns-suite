@@ -23,7 +23,7 @@ impl BytesSerializable for ARdata {
         Vec::from(self.address.octets())
     }
 
-    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
+    fn parse(bytes: &[u8], _parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
         let (remaining_input, parsed_bytes) =
             byte_parser(bytes, 4).map_err(|_| ParseDataError::InvalidByteStructure)?;
         let ardata = Self {

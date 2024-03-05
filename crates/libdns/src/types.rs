@@ -76,7 +76,7 @@ impl BytesSerializable for CharacterString {
         bytes_repr
     }
 
-    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
+    fn parse(bytes: &[u8], _parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
         let (remaining_input, parsed) =
             byte_parser(bytes, 1).map_err(|_| ParseDataError::InvalidByteStructure)?;
         let len = parsed[0];
@@ -126,7 +126,7 @@ impl BytesSerializable for DomainPointer {
         data.to_be_bytes().to_vec()
     }
 
-    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
+    fn parse(bytes: &[u8], _parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError> {
         // let first_byte = bytes.first().unwrap();
         let (remaining_input, parsed) =
             bit_parser((bytes, 0), 2).map_err(|_| ParseDataError::InvalidByteStructure)?;

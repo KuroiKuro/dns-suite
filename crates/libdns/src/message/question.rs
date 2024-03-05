@@ -1,7 +1,11 @@
 use itertools::Itertools;
 
 use crate::{
-    domain::DomainName, parse_utils::parse_u16, rr::{Qtype, ResourceRecordQClass}, BytesSerializable, CompressedBytesSerializable, MessageOffset, ParseDataError, SerializeCompressedOutcome
+    domain::DomainName,
+    parse_utils::parse_u16,
+    rr::{Qtype, ResourceRecordQClass},
+    BytesSerializable, CompressedBytesSerializable, MessageOffset, ParseDataError,
+    SerializeCompressedOutcome,
 };
 
 /// A struct depicting a question in a DNS message. The question section in the messsage
@@ -45,17 +49,22 @@ impl BytesSerializable for Question {
         [qname, qtype, qclass].into_iter().flatten().collect_vec()
     }
 
-    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError>
+    fn parse(bytes: &[u8], _parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError>
     where
         Self: std::marker::Sized,
     {
-        let (qname, remaining_input) = DomainName::parse(bytes, None).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (qname, remaining_input) =
+            DomainName::parse(bytes, None).map_err(|_| ParseDataError::InvalidByteStructure)?;
 
-        let (remaining_input, qtype_bytes) = parse_u16(remaining_input).map_err(|_| ParseDataError::InvalidByteStructure)?;
-        let qtype = Qtype::try_from(qtype_bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (remaining_input, qtype_bytes) =
+            parse_u16(remaining_input).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let qtype =
+            Qtype::try_from(qtype_bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
 
-        let (remaining_input, qclass_bytes) = parse_u16(remaining_input).map_err(|_| ParseDataError::InvalidByteStructure)?;
-        let qclass = ResourceRecordQClass::try_from(qclass_bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let (remaining_input, qclass_bytes) =
+            parse_u16(remaining_input).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let qclass = ResourceRecordQClass::try_from(qclass_bytes)
+            .map_err(|_| ParseDataError::InvalidByteStructure)?;
         Ok((Self::new(qname, qtype, qclass), remaining_input))
     }
 }
@@ -111,7 +120,7 @@ impl BytesSerializable for MessageQuestions {
             .collect_vec()
     }
 
-    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError>
+    fn parse(_bytes: &[u8], _parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError>
     where
         Self: std::marker::Sized,
     {
