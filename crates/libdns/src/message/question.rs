@@ -120,11 +120,20 @@ impl BytesSerializable for MessageQuestions {
             .collect_vec()
     }
 
-    fn parse(_bytes: &[u8], _parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError>
+    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError>
     where
         Self: std::marker::Sized,
     {
-        todo!()
+        let num_questions = parse_count.unwrap();
+        let mut questions = Vec::with_capacity(num_questions as usize);
+        let mut remaining_bytes_to_return = bytes;
+        for _ in 0..num_questions {
+            let (q, remaining_bytes) = Question::parse(remaining_bytes_to_return, None).map_err(|_| ParseDataError::InvalidByteStructure)?;
+            remaining_bytes_to_return = remaining_bytes;
+            questions.push(q);
+        }
+        let message_questions = MessageQuestions::new(questions);
+        Ok((message_questions, remaining_bytes_to_return))
     }
 }
 
@@ -166,6 +175,12 @@ mod tests {
     use crate::{create_pointer, domain::DomainLabel, LabelMap};
 
     use super::*;
+
+    /// Utility function to generate `Question` struct instances for testing
+    fn create_question(domain_name_str: &str) -> Question {
+        let domain_name = DomainName::try_from(domain_name_str).unwrap();
+        Question::new(domain_name, Qtype::A, ResourceRecordQClass::In)
+    }
 
     #[test]
     fn test_question_to_bytes() {
@@ -349,5 +364,44 @@ mod tests {
         let (parsed_question, remaining_input) = Question::parse(&question_bytes, None).unwrap();
         assert_eq!(parsed_question, question);
         assert_eq!(remaining_input.len(), 0);
+    }
+
+    #[test]
+    fn test_message_questions_parse() {
+        // Create the bytes of multiple questions and see if all of them are deserialized correctly
+        let q1 = create_question("example.com");
+        let q2 = create_question("me.example.com");
+        let q3 = create_question("fr.example.com");
+        let q4 = create_question("ant.example.com");
+
+        let bytes = [
+            q1.to_bytes(),
+            q2.to_bytes(),
+            q3.to_bytes(),
+            q4.to_bytes()
+        ].into_iter().flatten().collect::<Vec<u8>>();
+
+        let num_questions = 4;
+        let (message_questions, remaining_bytes) = MessageQuestions::parse(&bytes, Some(num_questions)).unwrap();
+
+        assert_eq!(message_questions.questions.len(), num_questions as usize);
+
+        assert_eq!(message_questions.questions[0].qname(), &q1.qname);
+        assert_eq!(message_questions.questions[0].qtype(), q1.qtype);
+        assert_eq!(message_questions.questions[0].qclass(), q1.qclass);
+
+        assert_eq!(message_questions.questions[1].qname(), &q2.qname);
+        assert_eq!(message_questions.questions[1].qtype(), q2.qtype);
+        assert_eq!(message_questions.questions[1].qclass(), q2.qclass);
+
+        assert_eq!(message_questions.questions[2].qname(), &q3.qname);
+        assert_eq!(message_questions.questions[2].qtype(), q3.qtype);
+        assert_eq!(message_questions.questions[2].qclass(), q3.qclass);
+
+        assert_eq!(message_questions.questions[3].qname(), &q4.qname);
+        assert_eq!(message_questions.questions[3].qtype(), q4.qtype);
+        assert_eq!(message_questions.questions[3].qclass(), q4.qclass);
+
+        assert!(remaining_bytes.is_empty());
     }
 }
