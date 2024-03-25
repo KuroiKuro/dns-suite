@@ -103,7 +103,8 @@ impl CompressedBytesSerializable for Question {
         // handles the compression-specific parsing, the logic in this method is
         // more or less the same as the regular `parse` method
         let (qname, new_offset) =
-            DomainName::parse_compressed(full_message_bytes, base_offset, None).map_err(|_| ParseDataError::InvalidByteStructure)?;
+            DomainName::parse_compressed(full_message_bytes, base_offset, None)
+                .map_err(|_| ParseDataError::InvalidByteStructure)?;
 
         let remaining_input = &full_message_bytes[(new_offset as usize)..];
         let (remaining_input, qtype_bytes) =
@@ -148,7 +149,8 @@ impl BytesSerializable for MessageQuestions {
         let mut questions = Vec::with_capacity(num_questions as usize);
         let mut remaining_bytes_to_return = bytes;
         for _ in 0..num_questions {
-            let (q, remaining_bytes) = Question::parse(remaining_bytes_to_return, None).map_err(|_| ParseDataError::InvalidByteStructure)?;
+            let (q, remaining_bytes) = Question::parse(remaining_bytes_to_return, None)
+                .map_err(|_| ParseDataError::InvalidByteStructure)?;
             remaining_bytes_to_return = remaining_bytes;
             questions.push(q);
         }
@@ -187,11 +189,13 @@ impl CompressedBytesSerializable for MessageQuestions {
     where
         Self: std::marker::Sized,
     {
-        let num_questions = parse_count.ok_or( ParseDataError::InvalidByteStructure)?;
+        let num_questions = parse_count.ok_or(ParseDataError::InvalidByteStructure)?;
         let mut questions = Vec::with_capacity(num_questions as usize);
         let mut offset_to_return = base_offset;
         for _ in 0..num_questions {
-            let (q, new_offset) = Question::parse_compressed(full_message_bytes, offset_to_return, None).map_err(|_| ParseDataError::InvalidByteStructure)?;
+            let (q, new_offset) =
+                Question::parse_compressed(full_message_bytes, offset_to_return, None)
+                    .map_err(|_| ParseDataError::InvalidByteStructure)?;
             offset_to_return = new_offset;
             questions.push(q);
         }
@@ -405,7 +409,8 @@ mod tests {
         let question = Question::new(qname, qtype, qclass);
         let question_bytes = question.to_bytes();
 
-        let (parsed_question, new_offset) = Question::parse_compressed(&question_bytes, 0, None).unwrap();
+        let (parsed_question, new_offset) =
+            Question::parse_compressed(&question_bytes, 0, None).unwrap();
         assert_eq!(parsed_question.qname(), question.qname());
         assert_eq!(parsed_question.qtype(), question.qtype());
         assert_eq!(parsed_question.qclass(), question.qclass());
@@ -418,17 +423,25 @@ mod tests {
         // Further test with the question bytes wrapped around additional bytes
         let padded_bytes_front = [0u8, 20u8, 43u8, 16u8, 17u8];
         let padded_bytes_back = [191u8, 23u8, 77u8, 63u8];
-        let padded_bytes: Vec<u8> = [padded_bytes_front.as_slice(), &question_bytes, padded_bytes_back.as_slice()]
-            .into_iter()
-            .flatten()
-            .cloned()
-            .collect();
-        
-        let (parsed_question, new_offset) = Question::parse_compressed(&padded_bytes, 5, None).unwrap();
+        let padded_bytes: Vec<u8> = [
+            padded_bytes_front.as_slice(),
+            &question_bytes,
+            padded_bytes_back.as_slice(),
+        ]
+        .into_iter()
+        .flatten()
+        .cloned()
+        .collect();
+
+        let (parsed_question, new_offset) =
+            Question::parse_compressed(&padded_bytes, 5, None).unwrap();
         assert_eq!(parsed_question.qname(), question.qname());
         assert_eq!(parsed_question.qtype(), question.qtype());
         assert_eq!(parsed_question.qclass(), question.qclass());
-        assert_eq!(new_offset, (padded_bytes_front.len() + question_bytes_len) as u16);
+        assert_eq!(
+            new_offset,
+            (padded_bytes_front.len() + question_bytes_len) as u16
+        );
         assert_eq!(&padded_bytes[(new_offset as usize)..], padded_bytes_back);
     }
 
@@ -440,15 +453,14 @@ mod tests {
         let q3 = create_question("fr.example.com");
         let q4 = create_question("ant.example.com");
 
-        let bytes = [
-            q1.to_bytes(),
-            q2.to_bytes(),
-            q3.to_bytes(),
-            q4.to_bytes()
-        ].into_iter().flatten().collect::<Vec<u8>>();
+        let bytes = [q1.to_bytes(), q2.to_bytes(), q3.to_bytes(), q4.to_bytes()]
+            .into_iter()
+            .flatten()
+            .collect::<Vec<u8>>();
 
         let num_questions = 4;
-        let (message_questions, remaining_bytes) = MessageQuestions::parse(&bytes, Some(num_questions)).unwrap();
+        let (message_questions, remaining_bytes) =
+            MessageQuestions::parse(&bytes, Some(num_questions)).unwrap();
 
         assert_eq!(message_questions.questions.len(), num_questions as usize);
 
@@ -496,13 +508,11 @@ mod tests {
         bytes.push(q4_serialize_outcome.compressed_bytes);
         // offset = q4_serialize_outcome.new_offset;
 
-        let bytes = bytes
-            .into_iter()
-            .flatten()
-            .collect::<Vec<u8>>();
+        let bytes = bytes.into_iter().flatten().collect::<Vec<u8>>();
 
         let num_questions = 4;
-        let (message_questions, new_offset) = MessageQuestions::parse_compressed(&bytes, 0, Some(num_questions)).unwrap();
+        let (message_questions, new_offset) =
+            MessageQuestions::parse_compressed(&bytes, 0, Some(num_questions)).unwrap();
 
         assert_eq!(message_questions.questions.len(), num_questions as usize);
 
