@@ -233,6 +233,7 @@ impl CompressedBytesSerializable for DomainName {
             }
         }
 
+        // The final offset will be the first byte of the subsequent part of message bytes
         Ok((DomainName::from_label(domain_labels), new_offset))
     }
 }
