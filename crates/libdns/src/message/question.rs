@@ -154,7 +154,7 @@ impl BytesSerializable for MessageQuestions {
             remaining_bytes_to_return = remaining_bytes;
             questions.push(q);
         }
-        let message_questions = MessageQuestions::new(questions);
+        let message_questions = Self::new(questions);
         Ok((message_questions, remaining_bytes_to_return))
     }
 }
@@ -199,7 +199,7 @@ impl CompressedBytesSerializable for MessageQuestions {
             offset_to_return = new_offset;
             questions.push(q);
         }
-        let message_questions = MessageQuestions::new(questions);
+        let message_questions = Self::new(questions);
         Ok((message_questions, offset_to_return))
     }
 }
