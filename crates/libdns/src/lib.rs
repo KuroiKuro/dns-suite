@@ -182,6 +182,7 @@ pub trait CompressedBytesSerializable {
     fn parse_compressed(
         full_message_bytes: &[u8],
         current_offset: MessageOffset,
+        parse_count: Option<u16>,
     ) -> Result<(Self, MessageOffset), ParseDataError>
     where
         Self: std::marker::Sized;

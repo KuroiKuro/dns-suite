@@ -186,6 +186,7 @@ impl CompressedBytesSerializable for DomainName {
     fn parse_compressed(
         full_message_bytes: &[u8],
         base_offset: MessageOffset,
+        _parse_count: Option<u16>
     ) -> Result<(Self, MessageOffset), ParseDataError>
     where
         Self: std::marker::Sized,
@@ -387,7 +388,7 @@ mod tests {
         let compressed_message = outcome.compressed_bytes;
 
         let (parsed_domain, new_offset) =
-            DomainName::parse_compressed(&compressed_message, offset).unwrap();
+            DomainName::parse_compressed(&compressed_message, offset, None).unwrap();
         assert_eq!(original_domain, parsed_domain);
         assert_eq!(outcome.new_offset, new_offset);
     }
