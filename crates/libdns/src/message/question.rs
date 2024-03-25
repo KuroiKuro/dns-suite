@@ -92,13 +92,32 @@ impl CompressedBytesSerializable for Question {
     }
 
     fn parse_compressed(
-        _full_message_bytes: &[u8],
-        _base_offset: crate::MessageOffset,
+        full_message_bytes: &[u8],
+        base_offset: crate::MessageOffset,
     ) -> Result<(Self, crate::MessageOffset), ParseDataError>
     where
         Self: std::marker::Sized,
     {
-        todo!()
+        // Since the `parse_compressed` method of the `DomainName` struct already
+        // handles the compression-specific parsing, the logic in this method is
+        // more or less the same as the regular `parse` method
+        let (qname, new_offset) =
+            DomainName::parse_compressed(full_message_bytes, base_offset).map_err(|_| ParseDataError::InvalidByteStructure)?;
+
+        let remaining_input = &full_message_bytes[(new_offset as usize)..];
+        let (remaining_input, qtype_bytes) =
+            parse_u16(remaining_input).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let qtype =
+            Qtype::try_from(qtype_bytes).map_err(|_| ParseDataError::InvalidByteStructure)?;
+
+        let (_, qclass_bytes) =
+            parse_u16(remaining_input).map_err(|_| ParseDataError::InvalidByteStructure)?;
+        let qclass = ResourceRecordQClass::try_from(qclass_bytes)
+            .map_err(|_| ParseDataError::InvalidByteStructure)?;
+
+        // Add 4 to the offset to account for the parsing of qclass and qtype. This will then point to the first
+        // byte (like at index 0) for the next part of the message bytes
+        Ok((Self::new(qname, qtype, qclass), new_offset + 4))
     }
 }
 
@@ -367,6 +386,42 @@ mod tests {
     }
 
     #[test]
+    fn test_question_parse_compressed() {
+        let qname = DomainName::try_from("us-east1.foo.bar.xyz").unwrap();
+        let qtype = Qtype::A;
+        let qclass = ResourceRecordQClass::In;
+
+        let question = Question::new(qname, qtype, qclass);
+        let question_bytes = question.to_bytes();
+
+        let (parsed_question, new_offset) = Question::parse_compressed(&question_bytes, 0).unwrap();
+        assert_eq!(parsed_question.qname(), question.qname());
+        assert_eq!(parsed_question.qtype(), question.qtype());
+        assert_eq!(parsed_question.qclass(), question.qclass());
+
+        // Final offset should be the same as the length of the question bytes since they contain only
+        // the question itself
+        let question_bytes_len = question_bytes.len();
+        assert_eq!(question_bytes_len as u16, new_offset);
+
+        // Further test with the question bytes wrapped around additional bytes
+        let padded_bytes_front = [0u8, 20u8, 43u8, 16u8, 17u8];
+        let padded_bytes_back = [191u8, 23u8, 77u8, 63u8];
+        let padded_bytes: Vec<u8> = [padded_bytes_front.as_slice(), &question_bytes, padded_bytes_back.as_slice()]
+            .into_iter()
+            .flatten()
+            .cloned()
+            .collect();
+        
+        let (parsed_question, new_offset) = Question::parse_compressed(&padded_bytes, 5).unwrap();
+        assert_eq!(parsed_question.qname(), question.qname());
+        assert_eq!(parsed_question.qtype(), question.qtype());
+        assert_eq!(parsed_question.qclass(), question.qclass());
+        assert_eq!(new_offset, (padded_bytes_front.len() + question_bytes_len) as u16);
+        assert_eq!(&padded_bytes[(new_offset as usize)..], padded_bytes_back);
+    }
+
+    #[test]
     fn test_message_questions_parse() {
         // Create the bytes of multiple questions and see if all of them are deserialized correctly
         let q1 = create_question("example.com");
@@ -404,4 +459,5 @@ mod tests {
 
         assert!(remaining_bytes.is_empty());
     }
+
 }
