@@ -48,6 +48,15 @@ impl DomainName {
             domain_labels: labels,
         }
     }
+
+    pub fn len_bytes(&self) -> u16 {
+        self
+            .domain_labels
+            .iter()
+            .map(|l| l.len_bytes())
+            .sum()
+            
+    }
 }
 
 impl TryFrom<&str> for DomainName {
@@ -153,7 +162,7 @@ impl CompressedBytesSerializable for DomainName {
                     } else {
                         let remaining_labels_offset: u16 = remaining_labels
                             .iter()
-                            .map(|label| label.len_bytes() as u16)
+                            .map(|label| label.len_bytes())
                             .sum();
                         let bytes = remaining_labels
                             .iter()
@@ -223,7 +232,7 @@ impl CompressedBytesSerializable for DomainName {
                     _ => return Err(ParseDataError::InvalidByteStructure),
                 };
 
-                new_offset += domain_label.len_bytes() as u16;
+                new_offset += domain_label.len_bytes();
                 // The last label has been parsed if it is an empty label, so we will need to break
                 let is_final_label = domain_label.is_empty();
                 domain_labels.push(domain_label);

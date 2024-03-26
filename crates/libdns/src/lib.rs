@@ -102,7 +102,7 @@ impl LabelMap {
                     // self.offset_to_label_map.insert(current_offset, entry.key().clone());
                     entry.insert(current_offset);
                     inserted_records += 1;
-                    current_offset += domain_labels[i].len_bytes() as u16;
+                    current_offset += domain_labels[i].len_bytes();
                 }
             }
         }
@@ -207,7 +207,7 @@ mod tests {
             result.new_offset,
             labels
                 .iter()
-                .map(|label| label.len_bytes() as u16)
+                .map(|label| label.len_bytes())
                 .sum::<u16>()
         );
         assert_eq!(result.remaining_labels, Vec::new());
@@ -228,7 +228,7 @@ mod tests {
 
         let result = label_map.insert(&labels, offset);
         assert_eq!(result.inserted_records, 1);
-        assert_eq!(result.new_offset, offset + labels[0].len_bytes() as u16);
+        assert_eq!(result.new_offset, offset + labels[0].len_bytes());
         assert_eq!(result.remaining_labels, labels[1..].to_vec());
     }
 
@@ -254,7 +254,7 @@ mod tests {
             DomainLabel::try_from("com").unwrap(),
         ];
         let (domain_ptr, remaining_labels) = label_map.get_domain_ptr(&partial_labels).unwrap();
-        let expected_offset = offset + labels[0].len_bytes() as u16;
+        let expected_offset = offset + labels[0].len_bytes();
         let expected_ptr = DomainPointer::new(expected_offset);
         assert_eq!(domain_ptr.to_bytes(), expected_ptr.to_bytes());
         assert_eq!(remaining_labels, vec![]);
@@ -266,7 +266,7 @@ mod tests {
             DomainLabel::try_from("com").unwrap(),
         ];
         let (domain_ptr, remaining_labels) = label_map.get_domain_ptr(&partial_labels).unwrap();
-        let expected_offset = offset + labels[0].len_bytes() as u16;
+        let expected_offset = offset + labels[0].len_bytes();
         let expected_ptr = DomainPointer::new(expected_offset);
         assert_eq!(domain_ptr.to_bytes(), expected_ptr.to_bytes());
         assert_eq!(remaining_labels, vec![partial_labels[0].clone()]);

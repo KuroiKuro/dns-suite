@@ -136,8 +136,8 @@ impl DomainLabel {
     /// Returns the would-be length of the label if it were to be serialized to
     /// bytes. The value is basically `self.len() + 1`, as it simply includes the
     /// length of the label that will be the first byte of the serialized label bytes
-    pub fn len_bytes(&self) -> u8 {
-        self.len() + 1
+    pub fn len_bytes(&self) -> u16 {
+        (self.len() as u16) + 1
     }
 
     pub fn is_empty(&self) -> bool {
