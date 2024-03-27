@@ -208,11 +208,7 @@ impl TxtBytes {
     }
 
     pub fn len_bytes(&self) -> u16 {
-        self
-            .txt_data
-            .iter()
-            .map(|d| d.len() as u16)
-            .sum()
+        self.txt_data.iter().map(|d| d.len() as u16).sum()
     }
 }
 

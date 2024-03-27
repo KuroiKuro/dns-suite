@@ -50,12 +50,7 @@ impl DomainName {
     }
 
     pub fn len_bytes(&self) -> u16 {
-        self
-            .domain_labels
-            .iter()
-            .map(|l| l.len_bytes())
-            .sum()
-            
+        self.domain_labels.iter().map(|l| l.len_bytes()).sum()
     }
 }
 
@@ -160,10 +155,8 @@ impl CompressedBytesSerializable for DomainName {
                     if remaining_labels.is_empty() {
                         (domain_ptr.to_bytes(), base_offset + DomainPointer::SIZE)
                     } else {
-                        let remaining_labels_offset: u16 = remaining_labels
-                            .iter()
-                            .map(|label| label.len_bytes())
-                            .sum();
+                        let remaining_labels_offset: u16 =
+                            remaining_labels.iter().map(|label| label.len_bytes()).sum();
                         let bytes = remaining_labels
                             .iter()
                             .flat_map(|label| label.to_bytes())

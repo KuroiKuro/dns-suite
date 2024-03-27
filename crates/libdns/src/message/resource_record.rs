@@ -318,7 +318,13 @@ mod tests {
             .resource_records
             .iter()
             .flat_map(|rr| {
-                let mut rr_initial = create_expected_bytes(&rr.name, rr.r#type, rr.class, rr.ttl, rr.rdata.len_bytes() as usize);
+                let mut rr_initial = create_expected_bytes(
+                    &rr.name,
+                    rr.r#type,
+                    rr.class,
+                    rr.ttl,
+                    rr.rdata.len_bytes() as usize,
+                );
                 rr_initial.extend(rr.rdata.to_bytes());
                 rr_initial
             })
@@ -684,7 +690,7 @@ mod tests {
 
         let rr_section = create_resource_record_section(&rr_details);
         let expected_bytes = create_expected_rr_section_bytes(&rr_section);
-        
+
         let bytes = rr_section.to_bytes();
         assert_eq!(bytes, expected_bytes);
     }
@@ -701,11 +707,11 @@ mod tests {
 
         let rr_section_to_parse = create_resource_record_section(&original_rr_details);
         let serialized_bytes = create_expected_rr_section_bytes(&rr_section_to_parse);
-        
-        let (parsed_rr_section, remaining_bytes) = ResourceRecordSection::parse(&serialized_bytes, Some(5)).unwrap();
+
+        let (parsed_rr_section, remaining_bytes) =
+            ResourceRecordSection::parse(&serialized_bytes, Some(5)).unwrap();
         assert_eq!(rr_section_to_parse, parsed_rr_section);
         assert!(remaining_bytes.is_empty());
-
     }
 
     #[test]

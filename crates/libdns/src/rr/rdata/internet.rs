@@ -26,7 +26,6 @@ impl ARdata {
 }
 
 impl BytesSerializable for ARdata {
-
     fn to_bytes(&self) -> Vec<u8> {
         Vec::from(self.address.octets())
     }

@@ -205,10 +205,7 @@ mod tests {
         assert_eq!(result.inserted_records, 3);
         assert_eq!(
             result.new_offset,
-            labels
-                .iter()
-                .map(|label| label.len_bytes())
-                .sum::<u16>()
+            labels.iter().map(|label| label.len_bytes()).sum::<u16>()
         );
         assert_eq!(result.remaining_labels, Vec::new());
 
