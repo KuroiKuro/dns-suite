@@ -13,12 +13,20 @@ pub struct ARdata {
 }
 
 impl ARdata {
+    /// The size of any given instance, in bytes
+    const SIZE: u16 = 4;
+
     pub fn new(address: Ipv4Addr) -> Self {
         Self { address }
+    }
+
+    pub fn len_bytes(&self) -> u16 {
+        Self::SIZE
     }
 }
 
 impl BytesSerializable for ARdata {
+
     fn to_bytes(&self) -> Vec<u8> {
         Vec::from(self.address.octets())
     }

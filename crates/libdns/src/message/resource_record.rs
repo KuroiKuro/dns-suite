@@ -86,6 +86,17 @@ impl Rdata {
             _ => None,
         }
     }
+
+    pub fn len_bytes(&self) -> u16 {
+        match self {
+            Rdata::Cname(d) => d.len_bytes(),
+            Rdata::Ns(d) => d.len_bytes(),
+            Rdata::Ptr(d) => d.len_bytes(),
+            Rdata::Soa(d) => d.len_bytes(),
+            Rdata::Txt(d) => d.len_bytes(),
+            Rdata::A(d) => d.len_bytes(),
+        }
+    }
 }
 
 /// All RRs have the same top level format shown below:
@@ -115,6 +126,7 @@ impl Rdata {
 ///
 /// For reference, `rdlength` is defined as follows:
 /// An unsigned 16 bit integer that specifies the length in octets of the RDATA field.
+#[derive(Debug, PartialEq)]
 pub struct ResourceRecord {
     /// An owner name, i.e., the name of the node to which this resource record pertains.
     name: DomainName,
@@ -210,6 +222,46 @@ impl BytesSerializable for ResourceRecord {
     }
 }
 
+/// A struct representing a resource record section in a DNS message. It is intended as a generic container
+/// that contains a collection of `ResourceRecord` structs, and is intended to be used for the Anser, Authority
+/// and Additional sections which come after the Header and Question sections in the DNS message
+#[derive(Debug, PartialEq)]
+pub struct ResourceRecordSection {
+    resource_records: Vec<ResourceRecord>,
+}
+
+impl ResourceRecordSection {
+    pub fn new(resource_records: Vec<ResourceRecord>) -> Self {
+        Self { resource_records }
+    }
+}
+
+impl BytesSerializable for ResourceRecordSection {
+    fn to_bytes(&self) -> Vec<u8> {
+        self.resource_records
+            .iter()
+            .flat_map(|rr| rr.to_bytes())
+            .collect()
+    }
+
+    fn parse(bytes: &[u8], parse_count: Option<u16>) -> Result<(Self, &[u8]), ParseDataError>
+    where
+        Self: std::marker::Sized,
+    {
+        let num_records = parse_count.ok_or(ParseDataError::InvalidByteStructure)?;
+        let mut records = Vec::with_capacity(num_records as usize);
+        let mut remaining_bytes_to_return = bytes;
+        for _ in 0..num_records {
+            let (q, remaining_bytes) = ResourceRecord::parse(remaining_bytes_to_return, None)
+                .map_err(|_| ParseDataError::InvalidByteStructure)?;
+            remaining_bytes_to_return = remaining_bytes;
+            records.push(q);
+        }
+        let resource_record_section = Self::new(records);
+        Ok((resource_record_section, remaining_bytes_to_return))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use ascii::AsciiString;
@@ -241,6 +293,36 @@ mod tests {
         bytes.extend((rdlength as u16).to_be_bytes());
 
         name.to_bytes().into_iter().chain(bytes).collect_vec()
+    }
+
+    /// Utility function for bulk creating a set of `ResourceRecord` instances and bundling them into
+    /// a `ResourceRecordSection` struct
+    fn create_resource_record_section(rr_details: &[(&str, Ipv4Addr)]) -> ResourceRecordSection {
+        let rrs = rr_details
+            .iter()
+            .map(|(domain_name_str, addr)| {
+                let domain_name = DomainName::try_from(*domain_name_str).unwrap();
+                let ardata = ARdata::new(*addr);
+                let rdata = Rdata::A(ardata);
+                let r_type = ResourceRecordType::A;
+                let r_class = ResourceRecordClass::In;
+                let ttl = 86400;
+                ResourceRecord::new(domain_name.clone(), r_type, r_class, ttl, rdata)
+            })
+            .collect::<Vec<_>>();
+        ResourceRecordSection::new(rrs)
+    }
+
+    fn create_expected_rr_section_bytes(rr_section: &ResourceRecordSection) -> Vec<u8> {
+        rr_section
+            .resource_records
+            .iter()
+            .flat_map(|rr| {
+                let mut rr_initial = create_expected_bytes(&rr.name, rr.r#type, rr.class, rr.ttl, rr.rdata.len_bytes() as usize);
+                rr_initial.extend(rr.rdata.to_bytes());
+                rr_initial
+            })
+            .collect()
     }
 
     #[test]
@@ -588,5 +670,71 @@ mod tests {
         assert_eq!(rr.class, expected_rr_class);
         assert_eq!(rr.ttl, expected_ttl);
         assert_eq!(rr.rdata, Rdata::Txt(expected_txt));
+    }
+
+    #[test]
+    fn test_resource_record_section_to_bytes() {
+        let rr_details = vec![
+            ("facebook.com", Ipv4Addr::new(192, 168, 1, 5)),
+            ("google.com", Ipv4Addr::new(192, 168, 1, 15)),
+            ("fellow.net", Ipv4Addr::new(192, 168, 1, 18)),
+            ("polonium.io", Ipv4Addr::new(192, 168, 1, 19)),
+            ("soixante.fr", Ipv4Addr::new(192, 168, 1, 20)),
+        ];
+
+        let rr_section = create_resource_record_section(&rr_details);
+        let expected_bytes = create_expected_rr_section_bytes(&rr_section);
+        
+        let bytes = rr_section.to_bytes();
+        assert_eq!(bytes, expected_bytes);
+    }
+
+    #[test]
+    fn test_resource_record_section_parse() {
+        let original_rr_details = vec![
+            ("facebook.com", Ipv4Addr::new(192, 168, 1, 5)),
+            ("google.com", Ipv4Addr::new(192, 168, 1, 15)),
+            ("fellow.net", Ipv4Addr::new(192, 168, 1, 18)),
+            ("polonium.io", Ipv4Addr::new(192, 168, 1, 19)),
+            ("soixante.fr", Ipv4Addr::new(192, 168, 1, 20)),
+        ];
+
+        let rr_section_to_parse = create_resource_record_section(&original_rr_details);
+        let serialized_bytes = create_expected_rr_section_bytes(&rr_section_to_parse);
+        
+        let (parsed_rr_section, remaining_bytes) = ResourceRecordSection::parse(&serialized_bytes, Some(5)).unwrap();
+        assert_eq!(rr_section_to_parse, parsed_rr_section);
+        assert!(remaining_bytes.is_empty());
+
+    }
+
+    #[test]
+    fn test_resource_record_section_parse_corrupted_bytes() {
+        let original_rr_details = vec![
+            ("facebook.com", Ipv4Addr::new(192, 168, 1, 5)),
+            ("google.com", Ipv4Addr::new(192, 168, 1, 15)),
+        ];
+        let rr_section_to_parse = create_resource_record_section(&original_rr_details);
+        let rr_section_bytes = create_expected_rr_section_bytes(&rr_section_to_parse);
+
+        // Test with random data in front of the correct bytes
+        let mut corrupted = vec![21u8, 3u8, 114u8, 0u8, 0u8];
+        corrupted.extend(rr_section_bytes.clone());
+        let result = ResourceRecordSection::parse(&corrupted, Some(2));
+        assert!(result.is_err());
+
+        // Test with random data in the middle of the correct bytes
+        let random_data = vec![73u8, 13u8, 91u8, 0u8, 10u8, 0u8, 141u8, 93u8];
+        let part1 = &rr_section_bytes[0..11];
+        let part2 = &rr_section_bytes[12..];
+        let corrupted = [part1, &random_data, part2].concat();
+        let result = ResourceRecordSection::parse(&corrupted, Some(2));
+        assert!(result.is_err());
+
+        let part1 = &rr_section_bytes[0..2];
+        let part2 = &rr_section_bytes[2..];
+        let corrupted = [part1, &random_data, part2].concat();
+        let result = ResourceRecordSection::parse(&corrupted, Some(2));
+        assert!(result.is_err());
     }
 }

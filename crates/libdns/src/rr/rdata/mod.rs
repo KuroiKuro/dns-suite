@@ -21,6 +21,10 @@ impl CnameBytes {
     pub fn new(cname: DomainName) -> Self {
         Self { cname }
     }
+
+    pub fn len_bytes(&self) -> u16 {
+        self.cname.len_bytes()
+    }
 }
 
 impl BytesSerializable for CnameBytes {
@@ -43,6 +47,10 @@ impl NsdnameBytes {
     pub fn new(nsdname: DomainName) -> Self {
         Self { nsdname }
     }
+
+    pub fn len_bytes(&self) -> u16 {
+        self.nsdname.len_bytes()
+    }
 }
 
 impl BytesSerializable for NsdnameBytes {
@@ -64,6 +72,10 @@ pub struct PtrBytes {
 impl PtrBytes {
     pub fn new(ptrdname: DomainName) -> Self {
         Self { ptrdname }
+    }
+
+    pub fn len_bytes(&self) -> u16 {
+        self.ptrdname.len_bytes()
     }
 }
 
@@ -126,6 +138,13 @@ impl SoaBytes {
             minimum,
         }
     }
+
+    pub fn len_bytes(&self) -> u16 {
+        let names_bytes_len = self.mname.len_bytes() + self.rname.len_bytes();
+        // remaining u32 items are manuall hardcoded and added to the length of
+        // bytes of the domain names
+        names_bytes_len + 20
+    }
 }
 
 impl BytesSerializable for SoaBytes {
@@ -186,6 +205,14 @@ pub struct TxtBytes {
 impl TxtBytes {
     pub fn new(txt_data: Vec<CharacterString>) -> Self {
         Self { txt_data }
+    }
+
+    pub fn len_bytes(&self) -> u16 {
+        self
+            .txt_data
+            .iter()
+            .map(|d| d.len() as u16)
+            .sum()
     }
 }
 
